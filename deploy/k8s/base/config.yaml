@@ -1,0 +1,9 @@
+# Non-secret settings. Secrets live in the meet-secrets Secret (see deploy/k8s/secret.example.env).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: meet-config
+data:
+  NODE_ENV: production
+  APP_URL: https://meet.blam.network
+  BOT_API_URL: http://bot.meet.svc.cluster.local:3001

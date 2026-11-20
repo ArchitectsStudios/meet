@@ -1,0 +1,39 @@
+# Nightly mongodump to /var/backups/meet on the VPS. Keeps 14 days.
+# Copy that folder off the server (rsync, restic, rclone) for real disaster recovery.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mongo-backup
+spec:
+  schedule: "30 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: dump
+              image: mongo:7
+              env:
+                - name: MONGODB_URI
+                  valueFrom: { secretKeyRef: { name: meet-secrets, key: MONGODB_URI } }
+              command:
+                - sh
+                - -c
+                - |
+                  set -e
+                  f=/backup/meet-$(date +%Y%m%d-%H%M%S).archive.gz
+                  mongodump --uri "$MONGODB_URI" --archive="$f" --gzip
+                  find /backup -name "meet-*.archive.gz" -mtime +14 -delete
+                  ls -lh /backup
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              hostPath:
+                path: /var/backups/meet
+                type: DirectoryOrCreate

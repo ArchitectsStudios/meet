@@ -1,0 +1,26 @@
+{
+  "name": "@meet/bot",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/index.cjs --sourcemap --external:discord.js --external:fastify --external:mongodb",
+    "start": "node --enable-source-maps dist/index.cjs",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"no bot tests\""
+  },
+  "dependencies": {
+    "@meet/shared": "workspace:*",
+    "discord.js": "^14.28.1",
+    "fastify": "^5.12.0",
+    "luxon": "^3.7.2",
+    "mongodb": "^7.0.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/luxon": "^3.7.1",
+    "esbuild": "^0.28.0",
+    "tsx": "^4.23.0"
+  }
+}

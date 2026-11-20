@@ -1,0 +1,18 @@
+{
+  "name": "meet",
+  "private": true,
+  "packageManager": "pnpm@10.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter \"@meet/*\" --parallel run dev",
+    "build": "pnpm --filter \"@meet/*\" run build",
+    "test": "pnpm --filter \"@meet/*\" run test",
+    "typecheck": "pnpm --filter \"@meet/*\" run typecheck"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "@types/node": "^24.0.0"
+  }
+}

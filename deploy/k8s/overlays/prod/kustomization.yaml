@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+# CI sets these to the commit SHA with `kubectl set image`. `latest` is the fallback for a first apply.
+images:
+  - name: ghcr.io/craftycodie/meet-web
+    newTag: latest
+  - name: ghcr.io/craftycodie/meet-bot
+    newTag: latest

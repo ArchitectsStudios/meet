@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0f1115;
+  --color-panel: #171a21;
+  --color-panel-2: #1f2330;
+  --color-line: #2a2f3d;
+  --color-text: #e6e8ee;
+  --color-muted: #9aa1b2;
+  --color-accent: #5865f2;
+  --color-accent-hover: #4752c4;
+  --color-ideal: #2f9e62;
+  --color-unavail: #c2414b;
+  --color-warn: #e0a72a;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+/* Tailwind v4: @utility (not @layer components) so classes can @apply each other. */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-accent text-white hover:bg-accent-hover;
+}
+@utility btn-ghost {
+  @apply btn border border-line bg-panel-2 text-text hover:bg-line;
+}
+@utility btn-danger {
+  @apply btn bg-unavail text-white hover:brightness-110;
+}
+@utility input {
+  @apply w-full rounded-md border border-line bg-panel-2 px-3 py-2 text-sm text-text outline-none placeholder:text-muted focus:border-accent;
+}
+@utility card {
+  @apply rounded-xl border border-line bg-panel p-5;
+}
+@utility label {
+  @apply mb-1 block text-xs font-semibold tracking-wide text-muted uppercase;
+}
+
+/* Rendered markdown (agenda) */
+.prose-agenda h1,
+.prose-agenda h2,
+.prose-agenda h3 {
+  font-weight: 600;
+  margin: 0.8em 0 0.3em;
+}
+.prose-agenda h1 { font-size: 1.25rem; }
+.prose-agenda h2 { font-size: 1.1rem; }
+.prose-agenda ul { list-style: disc; padding-left: 1.4em; }
+.prose-agenda ol { list-style: decimal; padding-left: 1.4em; }
+.prose-agenda p { margin: 0.4em 0; }
+.prose-agenda a { color: #8ea1ff; text-decoration: underline; }
+.prose-agenda code { background: var(--color-panel-2); padding: 0 0.25em; border-radius: 4px; }
+.prose-agenda input[type="checkbox"] { margin-right: 0.4em; }
