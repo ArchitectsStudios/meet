@@ -5,5 +5,5 @@ metadata:
   name: meet-config
 data:
   NODE_ENV: production
-  APP_URL: https://meet.blam.network
+  APP_URL: https://meet.architectsstudio.dev
   BOT_API_URL: http://bot.meet.svc.cluster.local:3001

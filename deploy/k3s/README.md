@@ -2,8 +2,10 @@
 
 This guide sets up one VPS (Ubuntu or Debian, 4 GB RAM or more) to run `meet` and any later services.
 
-- k3s comes with the Traefik ingress controller. Traefik listens on ports 80 and 443 and routes each request by hostname, so many subdomains can share the same ports.
+- Traefik listens on ports 80 and 443 and routes each request by hostname, so many subdomains can share the same ports.
 - cert-manager gets Let's Encrypt certificates for each Ingress.
+
+> The production VPS also runs blam.network outside Kubernetes. Its exact setup is in [../vps/README.md](../vps/README.md); follow that file for that server.
 
 ## 1. DNS
 
@@ -14,7 +16,7 @@ Add these records at your DNS provider:
 | `meet`           | A    | VPS IPv4    |
 | `*` (optional)   | A    | VPS IPv4    |
 
-The wildcard record lets any future `<name>.blam.network` service work with only a new Ingress. You do not need to change DNS again.
+The wildcard record lets any future `<name>.architectsstudio.dev` service work with only a new Ingress. You do not need to change DNS again.
 
 ## 2. Firewall
 
@@ -30,9 +32,20 @@ sudo ufw enable
 
 ## 3. Install k3s
 
+Disable the bundled Traefik and ServiceLB. Traefik is installed with Helm in the next step, so you control exactly which ports it takes.
+
 ```sh
-curl -sfL https://get.k3s.io | sh -
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --disable=traefik --disable=servicelb" sh -
 sudo kubectl get nodes        # shows one node, Ready
+```
+
+If ufw is on, let pod traffic through it:
+
+```sh
+sudo ufw allow from 10.42.0.0/16
+sudo ufw allow from 10.43.0.0/16
+sudo ufw route allow from 10.42.0.0/16
+sudo ufw route allow to 10.42.0.0/16
 ```
 
 To use `kubectl` as your normal user:
@@ -45,19 +58,26 @@ sudo chown $USER ~/.kube/config
 
 To manage the cluster from your own computer, copy that file over and replace `127.0.0.1` with the VPS IP.
 
-## 4. Install cert-manager and the issuers
+## 4. Install Traefik, cert-manager and the issuers
 
-Install Helm, then cert-manager:
+Install Helm, then Traefik on host ports 80 and 443:
 
 ```sh
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm repo add traefik https://traefik.github.io/charts
+helm upgrade --install traefik traefik/traefik -n traefik --create-namespace -f deploy/vps/traefik-values.yaml
+```
+
+Then cert-manager:
+
+```sh
 helm repo add jetstack https://charts.jetstack.io && helm repo update
 helm install cert-manager jetstack/cert-manager \
   --namespace cert-manager --create-namespace \
   --set crds.enabled=true
 ```
 
-Edit the email in `deploy/k3s/cluster-issuer.yaml`, then apply it:
+Optionally add an `email:` to `deploy/k3s/cluster-issuer.yaml` for expiry notices, then apply it:
 
 ```sh
 kubectl apply -f deploy/k3s/cluster-issuer.yaml
@@ -93,7 +113,7 @@ kubectl apply -k deploy/k8s/overlays/prod
 kubectl -n meet get pods,ingress,certificate
 ```
 
-The certificate shows `READY=True` after about a minute. Then <https://meet.blam.network> is live.
+The certificate shows `READY=True` after about a minute. Then <https://meet.architectsstudio.dev> is live.
 
 After that, each push to `main` builds new images. When you turn on the `deploy` job in `.github/workflows/build.yml`, it also rolls them out.
 
@@ -103,7 +123,7 @@ Give the service its own Ingress with its own `host` and TLS secret, and add the
 
 ```sh
 kubectl apply -f deploy/k3s/whoami-example.yaml
-curl https://whoami.blam.network
+curl https://whoami.architectsstudio.dev
 ```
 
 ## Operations

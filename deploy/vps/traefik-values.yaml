@@ -1,0 +1,27 @@
+# Traefik is the single entry point for ports 80 and 443 on the VPS.
+#   helm upgrade --install traefik traefik/traefik -n traefik --create-namespace -f deploy/vps/traefik-values.yaml
+# hostPort makes the pod receive traffic sent to the host IP, so no LoadBalancer is needed.
+# k3s runs with --disable=traefik --disable=servicelb so nothing else grabs those ports.
+deployment:
+  replicas: 1
+updateStrategy: # a hostPort cannot be shared, so replace the pod instead of surging
+  type: RollingUpdate
+  rollingUpdate: { maxUnavailable: 1, maxSurge: 0 }
+service:
+  spec:
+    type: ClusterIP
+ports:
+  web:
+    hostPort: 80
+  websecure:
+    hostPort: 443
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+  name: traefik
+providers:
+  kubernetesCRD:
+    allowCrossNamespace: true
+resources:
+  requests: { cpu: 50m, memory: 64Mi }
+  limits: { memory: 256Mi }

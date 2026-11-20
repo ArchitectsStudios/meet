@@ -1,6 +1,6 @@
 # Example second service on another subdomain. Proves host-based routing on the same port.
 #   kubectl apply -f deploy/k3s/whoami-example.yaml
-#   curl https://whoami.blam.network
+#   curl https://whoami.architectsstudio.dev
 # Remove with: kubectl delete -f deploy/k3s/whoami-example.yaml
 apiVersion: v1
 kind: Namespace
@@ -46,10 +46,10 @@ metadata:
 spec:
   ingressClassName: traefik
   tls:
-    - hosts: [whoami.blam.network]
+    - hosts: [whoami.architectsstudio.dev]
       secretName: whoami-tls
   rules:
-    - host: whoami.blam.network
+    - host: whoami.architectsstudio.dev
       http:
         paths:
           - path: /

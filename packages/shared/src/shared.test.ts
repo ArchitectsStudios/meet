@@ -174,8 +174,8 @@ describe("ics", () => {
       createdAt: new Date("2026-11-20T00:00:00Z"),
       updatedAt: new Date("2026-11-21T00:00:00Z"),
     };
-    const ics = buildIcs([meeting], { appUrl: "https://meet.blam.network", guildId: "999", viewerId: "me" });
-    expect(ics).toContain(`UID:${id.toString()}@meet.blam.network`);
+    const ics = buildIcs([meeting], { appUrl: "https://meet.architectsstudio.dev", guildId: "999", viewerId: "me" });
+    expect(ics).toContain(`UID:${id.toString()}@meet.architectsstudio.dev`);
     expect(ics).toContain("DTSTART:20261123T100000Z");
     expect(ics).toContain("SUMMARY:Sync\\, weekly");
     expect(ics).toContain("STATUS:CANCELLED");

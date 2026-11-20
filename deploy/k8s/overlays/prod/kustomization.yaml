@@ -8,3 +8,7 @@ images:
     newTag: latest
   - name: ghcr.io/craftycodie/meet-bot
     newTag: latest
+# The VPS has 3.7 GB RAM shared with blam.network, so run one web pod.
+replicas:
+  - name: web
+    count: 1

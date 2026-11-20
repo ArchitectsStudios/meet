@@ -1,0 +1,70 @@
+# blam.network runs outside Kubernetes: systemd unit blam-network.service, port 8443, its own TLS.
+# Traefik passes its TLS through untouched, matched by SNI. It also sends ACME HTTP-01 challenges
+# for *.blam.network to certbot standalone on port 8888 (http01_port in /etc/letsencrypt/renewal/*.conf).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: blam
+---
+apiVersion: v1
+kind: Service
+metadata: { name: blam-network, namespace: blam }
+spec:
+  ports: [{ name: https, port: 8443, targetPort: 8443, protocol: TCP }]
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: blam-network-host
+  namespace: blam
+  labels: { kubernetes.io/service-name: blam-network }
+addressType: IPv4
+ports: [{ name: https, port: 8443, protocol: TCP }]
+endpoints: [{ addresses: ["54.38.159.143"], conditions: { ready: true, serving: true, terminating: false } }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: certbot, namespace: blam }
+spec:
+  ports: [{ name: http, port: 8888, targetPort: 8888, protocol: TCP }]
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: certbot-host
+  namespace: blam
+  labels: { kubernetes.io/service-name: certbot }
+addressType: IPv4
+ports: [{ name: http, port: 8888, protocol: TCP }]
+endpoints: [{ addresses: ["54.38.159.143"], conditions: { ready: true, serving: true, terminating: false } }]
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteTCP
+metadata: { name: blam-network, namespace: blam }
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: HostSNIRegexp(`^(.+\.)?blam\.network$`)
+      services: [{ name: blam-network, port: 8443 }]
+  tls:
+    passthrough: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata: { name: redirect-https, namespace: blam }
+spec:
+  redirectScheme: { scheme: https, permanent: true }
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata: { name: blam-network-http, namespace: blam }
+spec:
+  entryPoints: [web]
+  routes:
+    - match: HostRegexp(`^(.+\.)?blam\.network$`) && PathPrefix(`/.well-known/acme-challenge/`)
+      priority: 100
+      services: [{ name: certbot, port: 8888 }]
+    - match: HostRegexp(`^(.+\.)?blam\.network$`)
+      priority: 10
+      middlewares: [{ name: redirect-https }]
+      services: [{ name: certbot, port: 8888 }] # never reached: the redirect answers first

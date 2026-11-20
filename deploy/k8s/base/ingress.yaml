@@ -20,10 +20,10 @@ metadata:
 spec:
   ingressClassName: traefik
   tls:
-    - hosts: [meet.blam.network]
+    - hosts: [meet.architectsstudio.dev]
       secretName: meet-tls
   rules:
-    - host: meet.blam.network
+    - host: meet.architectsstudio.dev
       http:
         paths:
           - path: /
