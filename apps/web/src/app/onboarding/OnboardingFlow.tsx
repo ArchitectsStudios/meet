@@ -66,8 +66,8 @@ export function OnboardingFlow({
         <div className="card space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted">
-              Mark when you are <span className="text-red-300">completely unavailable</span>, then when you are{" "}
-              <span className="text-green-300">ideally available</span>. Times shown in {tz}.
+              Mark when you are <span className="text-unavail-soft">completely unavailable</span>, then when you are{" "}
+              <span className="text-ideal-soft">ideally available</span>. Times shown in {tz}.
             </p>
             <button className="text-sm text-muted hover:text-text" onClick={() => setStep(1)}>
               Change timezone

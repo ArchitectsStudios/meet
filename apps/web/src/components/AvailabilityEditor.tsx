@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { AvailabilityBlock, Weekday } from "@meet/shared";
 import { SLOT_MIN, SLOTS_PER_DAY, WEEKDAYS } from "@/lib/client";
 import { TimeGrid } from "./TimeGrid";
@@ -8,10 +8,35 @@ import { TimeGrid } from "./TimeGrid";
 type Cell = 0 | 1 | 2; // 0 = unmarked, 1 = unavailable, 2 = ideal
 type Brush = Cell;
 
-const BRUSHES: { value: Brush; label: string; swatch: string; hint: string }[] = [
-  { value: 1, label: "Unavailable", swatch: "bg-unavail", hint: "You can never meet then" },
-  { value: 2, label: "Ideal", swatch: "bg-ideal", hint: "Best times for you" },
-  { value: 0, label: "Erase", swatch: "bg-panel-2 border border-line", hint: "Unmarked = available, not ideal" },
+const ROW = 20; // px per 30-minute row in the editor
+
+/** Visual style for each painted kind, shared by the grid blocks and the toolbar swatches. */
+const KIND: Record<1 | 2, { label: string; box: string; text: string; style?: CSSProperties; outline: string }> = {
+  1: {
+    label: "Unavailable",
+    box: "border border-unavail/50 border-l-[3px] border-l-unavail",
+    text: "text-unavail-soft",
+    style: {
+      // Opaque base so the grid lines do not show through, with a hatch so it reads as "blocked".
+      backgroundColor: "color-mix(in srgb, var(--color-unavail) 14%, var(--color-panel))",
+      backgroundImage:
+        "repeating-linear-gradient(135deg, rgb(194 65 75 / 0.22) 0 5px, transparent 5px 10px)",
+    },
+    outline: "border-unavail",
+  },
+  2: {
+    label: "Ideal",
+    box: "border border-ideal/50 border-l-[3px] border-l-ideal",
+    style: { backgroundColor: "color-mix(in srgb, var(--color-ideal) 24%, var(--color-panel))" },
+    text: "text-ideal-soft",
+    outline: "border-ideal",
+  },
+};
+
+const BRUSHES: { value: Brush; label: string; hint: string }[] = [
+  { value: 1, label: "Unavailable", hint: "Times you can never meet" },
+  { value: 2, label: "Ideal", hint: "Times that suit you best" },
+  { value: 0, label: "Erase", hint: "Back to unmarked: available, but not ideal" },
 ];
 
 function blocksToCells(blocks: AvailabilityBlock[]): Cell[] {
@@ -29,34 +54,73 @@ function blocksToCells(blocks: AvailabilityBlock[]): Cell[] {
   return cells;
 }
 
+/** Runs of identical non-empty cells in one day, as [startSlot, endSlot) ranges. */
+function dayRuns(cells: Cell[], day: number): { start: number; end: number; kind: 1 | 2 }[] {
+  const runs: { start: number; end: number; kind: 1 | 2 }[] = [];
+  let s = 0;
+  while (s < SLOTS_PER_DAY) {
+    const v = cells[day * SLOTS_PER_DAY + s]!;
+    if (v === 0) {
+      s++;
+      continue;
+    }
+    let e = s;
+    while (e < SLOTS_PER_DAY && cells[day * SLOTS_PER_DAY + e] === v) e++;
+    runs.push({ start: s, end: e, kind: v });
+    s = e;
+  }
+  return runs;
+}
+
 function cellsToBlocks(cells: Cell[]): AvailabilityBlock[] {
   const out: AvailabilityBlock[] = [];
   for (let day = 0; day < 7; day++) {
-    let s = 0;
-    while (s < SLOTS_PER_DAY) {
-      const v = cells[day * SLOTS_PER_DAY + s]!;
-      if (v === 0) {
-        s++;
-        continue;
-      }
-      let e = s;
-      while (e < SLOTS_PER_DAY && cells[day * SLOTS_PER_DAY + e] === v) e++;
+    for (const r of dayRuns(cells, day)) {
       out.push({
         day: day as Weekday,
-        startMin: s * SLOT_MIN,
-        endMin: e * SLOT_MIN,
-        kind: v === 1 ? "unavailable" : "ideal",
+        startMin: r.start * SLOT_MIN,
+        endMin: r.end * SLOT_MIN,
+        kind: r.kind === 1 ? "unavailable" : "ideal",
       });
-      s = e;
     }
   }
   return out;
 }
 
+const hhmm = (slot: number) => {
+  const min = slot * SLOT_MIN;
+  return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+};
+
+const hours = (slots: number) => {
+  const h = (slots * SLOT_MIN) / 60;
+  return `${Number.isInteger(h) ? h : h.toFixed(1)} h`;
+};
+
 interface Props {
   initialBlocks: AvailabilityBlock[];
   onSave: (blocks: AvailabilityBlock[]) => Promise<void>;
   saveLabel?: string;
+}
+
+type Drag = { d0: number; s0: number; d1: number; s1: number };
+
+function dragBounds(d: Drag) {
+  return {
+    dl: Math.min(d.d0, d.d1),
+    dh: Math.max(d.d0, d.d1),
+    sl: Math.min(d.s0, d.s1),
+    sh: Math.max(d.s0, d.s1),
+  };
+}
+
+function applyDrag(cells: Cell[], d: Drag, brush: Brush): Cell[] {
+  const { dl, dh, sl, sh } = dragBounds(d);
+  const next = [...cells];
+  for (let day = dl; day <= dh; day++) {
+    for (let s = sl; s <= sh; s++) next[day * SLOTS_PER_DAY + s] = brush;
+  }
+  return next;
 }
 
 /**
@@ -66,22 +130,12 @@ interface Props {
 export function AvailabilityEditor({ initialBlocks, onSave, saveLabel = "Save availability" }: Props) {
   const [cells, setCells] = useState<Cell[]>(() => blocksToCells(initialBlocks));
   const [brush, setBrush] = useState<Brush>(1);
-  const [drag, setDrag] = useState<{ d0: number; s0: number; d1: number; s1: number } | null>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const dragRef = useRef(drag);
   dragRef.current = drag;
-
-  const inDrag = useCallback(
-    (day: number, slot: number) => {
-      if (!drag) return false;
-      const [dl, dh] = [Math.min(drag.d0, drag.d1), Math.max(drag.d0, drag.d1)];
-      const [sl, sh] = [Math.min(drag.s0, drag.s1), Math.max(drag.s0, drag.s1)];
-      return day >= dl && day <= dh && slot >= sl && slot <= sh;
-    },
-    [drag],
-  );
 
   const cellAt = (x: number, y: number): { day: number; slot: number } | null => {
     const el = document.elementFromPoint(x, y) as HTMLElement | null;
@@ -93,13 +147,7 @@ export function AvailabilityEditor({ initialBlocks, onSave, saveLabel = "Save av
   const commit = useCallback(() => {
     const d = dragRef.current;
     if (!d) return;
-    setCells((prev) => {
-      const next = [...prev];
-      for (let day = Math.min(d.d0, d.d1); day <= Math.max(d.d0, d.d1); day++) {
-        for (let s = Math.min(d.s0, d.s1); s <= Math.max(d.s0, d.s1); s++) next[day * SLOTS_PER_DAY + s] = brush;
-      }
-      return next;
-    });
+    setCells((prev) => applyDrag(prev, d, brush));
     setDirty(true);
     setDrag(null);
   }, [brush]);
@@ -125,7 +173,18 @@ export function AvailabilityEditor({ initialBlocks, onSave, saveLabel = "Save av
     setDirty(true);
   };
 
+  // While dragging, show the result live so the grid always looks like what will be saved.
+  const shown = useMemo(() => (drag ? applyDrag(cells, drag, brush) : cells), [cells, drag, brush]);
   const blocks = useMemo(() => cellsToBlocks(cells), [cells]);
+  const totals = useMemo(() => {
+    let unavail = 0;
+    let ideal = 0;
+    for (const c of cells) {
+      if (c === 1) unavail++;
+      else if (c === 2) ideal++;
+    }
+    return { unavail, ideal };
+  }, [cells]);
 
   const save = async () => {
     setSaving(true);
@@ -141,51 +200,104 @@ export function AvailabilityEditor({ initialBlocks, onSave, saveLabel = "Save av
     }
   };
 
-  const colour = (v: Cell) => (v === 1 ? "bg-unavail/70" : v === 2 ? "bg-ideal/70" : "");
+  const selection = drag ? dragBounds(drag) : null;
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        {BRUSHES.map((b) => (
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex rounded-lg border border-line bg-panel-2 p-1" role="radiogroup" aria-label="Brush">
+          {BRUSHES.map((b) => {
+            const active = brush === b.value;
+            return (
+              <button
+                key={b.value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                title={b.hint}
+                onClick={() => setBrush(b.value)}
+                className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  active ? "bg-bg text-text shadow-sm ring-1 ring-line" : "text-muted hover:text-text"
+                }`}
+              >
+                {b.value === 0 ? (
+                  <span className="h-3 w-3 rounded-[3px] border border-dashed border-muted" />
+                ) : (
+                  <span className={`h-3 w-3 rounded-[3px] ${KIND[b.value].box}`} style={KIND[b.value].style} />
+                )}
+                {b.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-1">
           <button
-            key={b.value}
             type="button"
-            title={b.hint}
-            onClick={() => setBrush(b.value)}
-            className={`btn ${brush === b.value ? "bg-line ring-2 ring-accent" : "bg-panel-2 hover:bg-line"}`}
+            className="rounded-md px-2.5 py-1.5 text-sm text-muted transition-colors hover:bg-panel-2 hover:text-text"
+            onClick={copyMondayToWeekdays}
           >
-            <span className={`h-3 w-3 rounded-sm ${b.swatch}`} />
-            {b.label}
+            Copy Monday to Tue–Fri
           </button>
-        ))}
-        <span className="mx-1 h-6 w-px bg-line" />
-        <button type="button" className="btn-ghost" onClick={copyMondayToWeekdays}>
-          Copy Monday to Tue–Fri
-        </button>
-        <button
-          type="button"
-          className="btn-ghost"
-          onClick={() => {
-            setCells(new Array(7 * SLOTS_PER_DAY).fill(0));
-            setDirty(true);
-          }}
-        >
-          Clear all
-        </button>
+          <button
+            type="button"
+            className="rounded-md px-2.5 py-1.5 text-sm text-muted transition-colors hover:bg-panel-2 hover:text-text"
+            onClick={() => {
+              setCells(new Array(7 * SLOTS_PER_DAY).fill(0));
+              setDirty(true);
+            }}
+          >
+            Clear all
+          </button>
+        </div>
       </div>
-      <p className="text-xs text-muted">
-        Drag across the grid to paint. Times are in your timezone and repeat every week. Unmarked time counts as available but
-        not ideal.
-      </p>
+
       <TimeGrid
         headers={WEEKDAYS}
-        cellClass={(day, slot) => {
-          if (inDrag(day, slot)) return brush === 0 ? "bg-line" : brush === 1 ? "bg-unavail/40" : "bg-ideal/40";
-          return `${colour(cells[day * SLOTS_PER_DAY + slot]!)} cursor-crosshair`;
-        }}
+        rowHeight={ROW}
+        columnClass={(day) => (day >= 5 ? "bg-panel-2/35" : "")}
+        cellClass={() => "cursor-crosshair hover:bg-text/[0.04]"}
         cellProps={(day, slot) => ({ "data-day": String(day), "data-slot": String(slot) })}
+        renderOverlay={(day) =>
+          dayRuns(shown, day).map((r) => {
+            const k = KIND[r.kind];
+            const slots = r.end - r.start;
+            return (
+              <div
+                key={`${r.start}-${r.kind}`}
+                className={`absolute right-1 left-1 overflow-hidden rounded-md px-1.5 leading-tight ${k.box} ${k.text}`}
+                style={{ ...k.style, top: r.start * ROW + 1, height: slots * ROW - 2 }}
+              >
+                {slots >= 2 ? (
+                  <div className="pt-1">
+                    <div className="truncate text-[11px] font-semibold">{k.label}</div>
+                    <div className="truncate text-[10px] tabular-nums opacity-80">
+                      {hhmm(r.start)}–{hhmm(r.end)}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="truncate text-[10px] tabular-nums opacity-80" style={{ lineHeight: `${ROW - 2}px` }}>
+                    {hhmm(r.start)}–{hhmm(r.end)}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        }
+        gridOverlay={
+          selection && (
+            <div
+              className={`absolute rounded-md border-2 border-dashed ${brush === 0 ? "border-muted" : KIND[brush].outline}`}
+              style={{
+                left: `calc(${(selection.dl / 7) * 100}% + 2px)`,
+                width: `calc(${((selection.dh - selection.dl + 1) / 7) * 100}% - 4px)`,
+                top: selection.sl * ROW,
+                height: (selection.sh - selection.sl + 1) * ROW,
+              }}
+            />
+          )
+        }
         containerProps={{
-          style: { gridTemplateColumns: "3.5rem repeat(7, minmax(0, 1fr))", touchAction: "none" },
+          style: { touchAction: "none" },
           onPointerDown: (e) => {
             const c = cellAt(e.clientX, e.clientY);
             if (!c) return;
@@ -201,7 +313,20 @@ export function AvailabilityEditor({ initialBlocks, onSave, saveLabel = "Save av
           },
         }}
       />
-      <div className="flex items-center gap-3">
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs text-muted">
+          Drag to paint. Times are in your timezone and repeat every week. Unmarked time counts as available, but not ideal.
+        </p>
+        <p className="text-xs text-muted tabular-nums">
+          <span className="text-ideal-soft">{hours(totals.ideal)} ideal</span>
+          {" · "}
+          <span className="text-unavail-soft">{hours(totals.unavail)} unavailable</span>
+          {" per week"}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3 border-t border-line pt-3">
         <button type="button" className="btn-primary" disabled={saving} onClick={save}>
           {saving ? "Saving…" : saveLabel}
         </button>
