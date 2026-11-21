@@ -52,19 +52,6 @@ export function SettingsClient({
 
   return (
     <div className="space-y-6">
-      <section className="card space-y-3">
-        <h2 className="font-semibold">Weekly availability</h2>
-        <AvailabilityEditor
-          initialBlocks={blocks}
-          onSave={async (b) => {
-            await api("/api/availability", { method: "PUT", body: JSON.stringify({ guildId, blocks: b }) });
-          }}
-        />
-        <p className="text-xs text-muted">
-          Blocks stay at the same local time in your timezone. If you change timezone, they move with it.
-        </p>
-      </section>
-
       <div className="grid gap-6 md:grid-cols-2">
         <section className="card space-y-3">
           <h2 className="font-semibold">Timezone</h2>
@@ -100,6 +87,19 @@ export function SettingsClient({
           <p className="text-xs text-muted">Anyone with this link can see your meetings. Reset it if it leaks.</p>
         </section>
       </div>
+
+      <section className="card space-y-3">
+        <h2 className="font-semibold">Weekly availability</h2>
+        <AvailabilityEditor
+          initialBlocks={blocks}
+          onSave={async (b) => {
+            await api("/api/availability", { method: "PUT", body: JSON.stringify({ guildId, blocks: b }) });
+          }}
+        />
+        <p className="text-xs text-muted">
+          Blocks stay at the same local time in your timezone. If you change timezone, they move with it.
+        </p>
+      </section>
     </div>
   );
 }
