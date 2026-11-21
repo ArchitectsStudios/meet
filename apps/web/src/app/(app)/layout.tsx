@@ -20,10 +20,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             Availability &amp; settings
           </Link>
           <div className="ml-auto flex items-center gap-3">
-            {guilds.length > 1 && active && <GuildSwitcher guilds={guilds} activeId={active.id} />}
             <Link href="/meetings/new" className="btn-primary">
               New meeting
             </Link>
+            {guilds.length > 1 && active && <GuildSwitcher guilds={guilds} activeId={active.id} />}
             {session.avatarUrl && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={session.avatarUrl} alt="" className="h-8 w-8 rounded-full" />

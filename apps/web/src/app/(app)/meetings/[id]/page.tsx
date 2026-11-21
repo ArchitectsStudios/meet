@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { Guest, Rsvp } from "@meet/shared";
+import { meetingFit, type FitResult, type Fit, type Guest, type Rsvp } from "@meet/shared";
+import { collections } from "@meet/shared/db";
 import { requireOnboardedUser } from "@/lib/session";
 import { canView, loadMeeting } from "@/lib/meetings";
 import { formatRange } from "@/lib/client";
@@ -15,8 +16,50 @@ const RSVP_BADGE: Record<Rsvp, { label: string; cls: string }> = {
   pending: { label: "No answer", cls: "bg-line text-muted" },
 };
 
-function GuestRow({ g }: { g: Guest }) {
+const FIT_CHIP: Record<Fit, { label: string; cls: string }> = {
+  available: { label: "Available", cls: "border-ideal/50 text-ideal-soft" },
+  tentative: { label: "Tentative", cls: "border-warn/50 text-yellow-100" },
+  unavailable: { label: "Unavailable", cls: "border-unavail/50 text-unavail-soft" },
+};
+
+/** Each guest's fit for this meeting's time, from their weekly availability and their other meetings. */
+async function guestFits(meeting: { _id?: unknown; start: Date; end: Date; guests: Guest[] }): Promise<Map<string, FitResult>> {
+  const ids = meeting.guests.map((g) => g.discordId);
+  const { users, availability, meetings } = await collections();
+  const [userDocs, availDocs, clashes] = await Promise.all([
+    users.find({ discordId: { $in: ids } }, { projection: { discordId: 1, timezone: 1 } }).toArray(),
+    availability.find({ discordId: { $in: ids } }).toArray(),
+    meetings
+      .find(
+        {
+          _id: { $ne: meeting._id as never },
+          status: "scheduled",
+          start: { $lt: meeting.end },
+          end: { $gt: meeting.start },
+          $or: [{ organizerId: { $in: ids } }, { guests: { $elemMatch: { discordId: { $in: ids }, rsvp: { $ne: "declined" } } } }],
+        },
+        { projection: { start: 1, end: 1, organizerId: 1, guests: 1 } },
+      )
+      .toArray(),
+  ]);
+  const tz = new Map(userDocs.map((u) => [u.discordId, u.timezone]));
+  const blocks = new Map(availDocs.map((a) => [a.discordId, a.blocks]));
+  const out = new Map<string, FitResult>();
+  for (const id of ids) {
+    const busy = clashes
+      .filter((c) => c.organizerId === id || c.guests.some((g) => g.discordId === id && g.rsvp !== "declined"))
+      .map((c) => ({ start: c.start.getTime(), end: c.end.getTime() }));
+    out.set(
+      id,
+      meetingFit({ timezone: tz.get(id) ?? null, blocks: blocks.get(id) ?? [] }, { start: meeting.start.getTime(), end: meeting.end.getTime() }, busy),
+    );
+  }
+  return out;
+}
+
+function GuestRow({ g, fit }: { g: Guest; fit?: FitResult }) {
   const badge = RSVP_BADGE[g.rsvp];
+  const chip = fit ? FIT_CHIP[fit.fit] : null;
   return (
     <li className="flex items-center gap-2 py-1 text-sm">
       <span>{g.displayName}</span>
@@ -30,7 +73,13 @@ function GuestRow({ g }: { g: Guest }) {
           DM failed
         </span>
       )}
-      <span className={`ml-auto rounded px-1.5 py-0.5 text-[11px] ${badge.cls}`}>{badge.label}</span>
+      <span className="ml-auto" />
+      {chip && (
+        <span className={`rounded-full border px-1.5 py-px text-[10px] font-medium ${chip.cls}`} title={fit!.reason}>
+          {chip.label}
+        </span>
+      )}
+      <span className={`rounded px-1.5 py-0.5 text-[11px] ${badge.cls}`}>{badge.label}</span>
     </li>
   );
 }
@@ -42,6 +91,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
   if (!m || !canView(m, user.discordId)) notFound();
 
   const isOrganizer = m.organizerId === user.discordId;
+  const fits = m.status === "scheduled" ? await guestFits(m) : new Map<string, FitResult>();
   const me = m.guests.find((g) => g.discordId === user.discordId);
   const organizerGuest = m.guests.find((g) => g.organizer);
   const direct = m.guests.filter((g) => g.direct && !g.organizer);
@@ -100,9 +150,9 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
         </div>
         {(organizerGuest || direct.length > 0) && (
           <ul className="divide-y divide-line/60">
-            {organizerGuest && <GuestRow g={organizerGuest} />}
+            {organizerGuest && <GuestRow g={organizerGuest} fit={fits.get(organizerGuest.discordId)} />}
             {direct.map((g) => (
-              <GuestRow key={g.discordId} g={g} />
+              <GuestRow key={g.discordId} g={g} fit={fits.get(g.discordId)} />
             ))}
           </ul>
         )}
@@ -122,7 +172,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
               </summary>
               <ul className="mt-1 divide-y divide-line/60">
                 {members.map((g) => (
-                  <GuestRow key={g.discordId} g={g} />
+                  <GuestRow key={g.discordId} g={g} fit={fits.get(g.discordId)} />
                 ))}
               </ul>
             </details>

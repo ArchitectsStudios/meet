@@ -3,6 +3,7 @@ import { DateTime } from "luxon";
 import { expandWeekly, covers, normalizeBlocks } from "./time";
 import { suggestTimes, type SuggestParticipant } from "./suggest";
 import { mergeGuests } from "./guests";
+import { meetingFit } from "./fit";
 import { buildIcs, icsEscape, icsFold } from "./ics";
 import { meetingInputSchema, availabilityBlockSchema } from "./schemas";
 import type { AvailabilityBlock, MeetingDoc } from "./types";
@@ -192,5 +193,33 @@ describe("schemas", () => {
     const bad = meetingInputSchema.safeParse({ title: "x", start: "2026-11-23T10:00:00Z", end: "2026-11-23T09:00:00Z" });
     expect(bad.success).toBe(false);
     expect(availabilityBlockSchema.safeParse({ day: 1, startMin: 60, endMin: 30, kind: "ideal" }).success).toBe(false);
+  });
+});
+
+describe("meetingFit", () => {
+  // Monday 23 Nov 2026, London is UTC+0 then.
+  const at = (h: number, m = 0) => Date.UTC(2026, 10, 23, h, m);
+  const person = {
+    timezone: "Europe/London",
+    blocks: [
+      { day: 0 as const, startMin: 9 * 60, endMin: 12 * 60, kind: "ideal" as const },
+      { day: 0 as const, startMin: 13 * 60, endMin: 14 * 60, kind: "unavailable" as const },
+    ],
+  };
+
+  it("is available inside ideal time", () => {
+    expect(meetingFit(person, { start: at(10), end: at(11) }).fit).toBe("available");
+  });
+  it("is tentative when partly outside ideal time", () => {
+    expect(meetingFit(person, { start: at(11, 30), end: at(12, 30) }).fit).toBe("tentative");
+  });
+  it("is unavailable when touching unavailable time", () => {
+    expect(meetingFit(person, { start: at(12, 30), end: at(13, 30) }).fit).toBe("unavailable");
+  });
+  it("is unavailable when clashing with another meeting", () => {
+    expect(meetingFit(person, { start: at(10), end: at(11) }, [{ start: at(10, 30), end: at(11, 30) }]).fit).toBe("unavailable");
+  });
+  it("is tentative without availability", () => {
+    expect(meetingFit({ timezone: null, blocks: [] }, { start: at(10), end: at(11) }).fit).toBe("tentative");
   });
 });

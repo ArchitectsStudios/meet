@@ -10,7 +10,6 @@ import type { MeetingJson } from "@/lib/meetings";
 import { api } from "@/lib/client";
 import { GuestPicker, type PickedRole, type PickedUser } from "./GuestPicker";
 import { SuggestPanel } from "./SuggestPanel";
-import { GuildIcon } from "./GuildSwitcher";
 
 const DURATIONS = [15, 30, 45, 60, 90, 120, 180, 240];
 const REMINDERS: { value: number; label: string }[] = [
@@ -140,12 +139,6 @@ export function MeetingForm({ timezone, meId, guild, initial }: Props) {
     <form onSubmit={submit} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
       <div className="space-y-4">
         <div className="card space-y-4">
-          <div className="flex items-center gap-2 text-sm text-muted">
-            <GuildIcon guild={guild} size={20} />
-            <span>
-              {initial ? "In" : "Creating in"} <span className="font-medium text-text">{guild.name}</span>
-            </span>
-          </div>
           <div>
             <label className="label" htmlFor="title">Title</label>
             <input id="title" className="input" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} />
