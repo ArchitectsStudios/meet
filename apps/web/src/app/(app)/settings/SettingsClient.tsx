@@ -7,19 +7,24 @@ import { api } from "@/lib/client";
 import { AvailabilityEditor } from "@/components/AvailabilityEditor";
 import { TimezoneSelect } from "@/components/TimezoneSelect";
 
+/** Feed for one server; the token is shared by all of the user's server feeds. */
+const feedUrl = (base: string, guildId: string) => `${base}?guild=${encodeURIComponent(guildId)}`;
+
 export function SettingsClient({
+  guildId,
   timezone,
   blocks,
-  icsUrl: initialIcsUrl,
+  icsBase,
 }: {
+  guildId: string;
   timezone: string;
   blocks: AvailabilityBlock[];
-  icsUrl: string;
+  icsBase: string;
 }) {
   const router = useRouter();
   const [tz, setTz] = useState(timezone);
   const [tzMsg, setTzMsg] = useState<string | null>(null);
-  const [icsUrl, setIcsUrl] = useState(initialIcsUrl);
+  const [icsUrl, setIcsUrl] = useState(() => feedUrl(icsBase, guildId));
   const [copied, setCopied] = useState(false);
 
   const saveTz = async () => {
@@ -36,7 +41,7 @@ export function SettingsClient({
   const resetIcs = async () => {
     if (!confirm("Make a new calendar link? Calendars subscribed to the old link stop updating.")) return;
     const res = await api<{ icsUrl: string }>("/api/me/ics-token", { method: "POST" });
-    setIcsUrl(res.icsUrl);
+    setIcsUrl(feedUrl(res.icsUrl, guildId));
   };
 
   const copy = async () => {
@@ -52,7 +57,7 @@ export function SettingsClient({
         <AvailabilityEditor
           initialBlocks={blocks}
           onSave={async (b) => {
-            await api("/api/availability", { method: "PUT", body: JSON.stringify({ blocks: b }) });
+            await api("/api/availability", { method: "PUT", body: JSON.stringify({ guildId, blocks: b }) });
           }}
         />
         <p className="text-xs text-muted">

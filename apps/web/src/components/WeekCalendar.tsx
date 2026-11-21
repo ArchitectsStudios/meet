@@ -9,6 +9,8 @@ import { api, dayPieces, ROW_H, SLOT_MIN, SLOTS_PER_DAY, weekStartOf } from "@/l
 import { TimeGrid } from "./TimeGrid";
 
 interface Props {
+  /** Only meetings in this server are shown. */
+  guildId: string;
   timezone: string;
   meId: string;
   blocks: AvailabilityBlock[];
@@ -29,7 +31,7 @@ function chipClass(m: MeetingJson, meId: string): string {
   }
 }
 
-export function WeekCalendar({ timezone, meId, blocks }: Props) {
+export function WeekCalendar({ guildId, timezone, meId, blocks }: Props) {
   const [weekStart, setWeekStart] = useState(() => weekStartOf(DateTime.now().setZone(timezone)));
   const [meetings, setMeetings] = useState<MeetingJson[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export function WeekCalendar({ timezone, meId, blocks }: Props) {
 
   useEffect(() => {
     let alive = true;
-    const qs = new URLSearchParams({ from: weekStart.toUTC().toISO()!, to: weekEnd.toUTC().toISO()! });
+    const qs = new URLSearchParams({ guild: guildId, from: weekStart.toUTC().toISO()!, to: weekEnd.toUTC().toISO()! });
     api<MeetingJson[]>(`/api/meetings?${qs}`)
       .then((list) => alive && (setMeetings(list), setError(null)))
       .catch((err) => alive && setError((err as Error).message));
@@ -45,7 +47,7 @@ export function WeekCalendar({ timezone, meId, blocks }: Props) {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekStart.toMillis()]);
+  }, [weekStart.toMillis(), guildId]);
 
   // Shade the grid with this week's availability, resolved per date so DST is handled.
   const shading = useMemo(() => {

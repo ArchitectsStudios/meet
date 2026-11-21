@@ -36,10 +36,11 @@ export const POST = handler(async (req: Request) => {
   const { users, availability, meetings } = await collections();
   const [userDocs, availDocs, busyDocs] = await Promise.all([
     users.find({ discordId: { $in: ids } }, { projection: { discordId: 1, timezone: 1 } }).toArray(),
-    availability.find({ discordId: { $in: ids } }).toArray(),
+    availability.find({ discordId: { $in: ids }, guildId: input.guildId }).toArray(),
     meetings
       .find(
         {
+          guildId: input.guildId,
           status: "scheduled",
           start: { $lt: new Date(rangeEnd) },
           end: { $gt: new Date(rangeStart) },

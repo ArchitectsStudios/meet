@@ -11,6 +11,8 @@ export function isValidTimezone(tz: string): boolean {
 
 export const timezoneSchema = z.string().min(1).refine(isValidTimezone, "Unknown timezone");
 
+const snowflake = z.string().regex(/^\d{5,25}$/, "Invalid Discord ID");
+
 export const availabilityBlockSchema = z
   .object({
     day: z.number().int().min(0).max(6),
@@ -21,14 +23,13 @@ export const availabilityBlockSchema = z
   .refine((b) => b.endMin > b.startMin, "endMin must be after startMin");
 
 export const availabilityInputSchema = z.object({
+  guildId: snowflake,
   blocks: z.array(availabilityBlockSchema).max(500),
 });
 
 export const settingsInputSchema = z.object({
   timezone: timezoneSchema,
 });
-
-const snowflake = z.string().regex(/^\d{5,25}$/, "Invalid Discord ID");
 
 export const meetingInputSchema = z
   .object({

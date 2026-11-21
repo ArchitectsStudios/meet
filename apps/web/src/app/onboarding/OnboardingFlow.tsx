@@ -8,9 +8,11 @@ import { AvailabilityEditor } from "@/components/AvailabilityEditor";
 import { TimezoneSelect } from "@/components/TimezoneSelect";
 
 export function OnboardingFlow({
+  guildId,
   initialTimezone,
   initialBlocks,
 }: {
+  guildId: string;
   initialTimezone: string | null;
   initialBlocks: AvailabilityBlock[];
 }) {
@@ -38,7 +40,7 @@ export function OnboardingFlow({
   };
 
   const finish = async (blocks: AvailabilityBlock[]) => {
-    await api("/api/availability", { method: "PUT", body: JSON.stringify({ blocks }) });
+    await api("/api/availability", { method: "PUT", body: JSON.stringify({ guildId, blocks }) });
     await api("/api/me", { method: "PATCH", body: JSON.stringify({ onboarded: true }) });
     router.replace("/");
     router.refresh();

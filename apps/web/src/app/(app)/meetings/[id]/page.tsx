@@ -22,17 +22,18 @@ const FIT_CHIP: Record<Fit, { label: string; cls: string }> = {
   unavailable: { label: "Unavailable", cls: "border-unavail/50 text-unavail-soft" },
 };
 
-/** Each guest's fit for this meeting's time, from their weekly availability and their other meetings. */
-async function guestFits(meeting: { _id?: unknown; start: Date; end: Date; guests: Guest[] }): Promise<Map<string, FitResult>> {
+/** Each guest's fit for this meeting's time, from their availability and other meetings in the same server. */
+async function guestFits(meeting: { _id?: unknown; guildId: string; start: Date; end: Date; guests: Guest[] }): Promise<Map<string, FitResult>> {
   const ids = meeting.guests.map((g) => g.discordId);
   const { users, availability, meetings } = await collections();
   const [userDocs, availDocs, clashes] = await Promise.all([
     users.find({ discordId: { $in: ids } }, { projection: { discordId: 1, timezone: 1 } }).toArray(),
-    availability.find({ discordId: { $in: ids } }).toArray(),
+    availability.find({ discordId: { $in: ids }, guildId: meeting.guildId }).toArray(),
     meetings
       .find(
         {
           _id: { $ne: meeting._id as never },
+          guildId: meeting.guildId,
           status: "scheduled",
           start: { $lt: meeting.end },
           end: { $gt: meeting.start },

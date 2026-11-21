@@ -35,7 +35,9 @@ async function ensureIndexes(db: Db): Promise<void> {
   await Promise.all([
     db.collection("users").createIndex({ discordId: 1 }, { unique: true }),
     db.collection("users").createIndex({ icsToken: 1 }, { unique: true, sparse: true }),
-    db.collection("availability").createIndex({ discordId: 1 }, { unique: true }),
+    db.collection("availability").createIndex({ discordId: 1, guildId: 1 }, { unique: true }),
+    // Availability used to be one document per user; that index would block a second server.
+    db.collection("availability").dropIndex("discordId_1").catch(() => undefined),
     db.collection("meetings").createIndex({ "guests.discordId": 1, start: 1 }),
     db.collection("meetings").createIndex({ organizerId: 1, start: 1 }),
     db.collection("meetings").createIndex({ status: 1, reminderSentAt: 1, start: 1 }),

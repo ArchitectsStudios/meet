@@ -9,18 +9,19 @@ import { requireGuildMember } from "@/lib/guilds";
 import { buildGuests, initialReminderSentAt, meetingsForUser, resolveInvites, serializeMeeting } from "@/lib/meetings";
 
 const rangeSchema = z.object({
+  guild: z.string(),
   from: z.coerce.date(),
   to: z.coerce.date(),
 });
 
-/** Meetings overlapping [from, to) that the user organizes or is invited to. */
+/** Meetings in one server overlapping [from, to) that the user organizes or is invited to. */
 export const GET = handler(async (req: NextRequest) => {
   const s = await apiSession();
-  const { from, to } = rangeSchema.parse(Object.fromEntries(req.nextUrl.searchParams));
+  const { guild, from, to } = rangeSchema.parse(Object.fromEntries(req.nextUrl.searchParams));
   if (to.getTime() - from.getTime() > 62 * 24 * 3600_000) throw new HttpError(400, "Range too long");
   const { meetings } = await collections();
   const list = await meetings
-    .find({ ...meetingsForUser(s.sub), status: "scheduled", start: { $lt: to }, end: { $gt: from } })
+    .find({ ...meetingsForUser(s.sub), guildId: guild, status: "scheduled", start: { $lt: to }, end: { $gt: from } })
     .sort({ start: 1 })
     .limit(500)
     .toArray();

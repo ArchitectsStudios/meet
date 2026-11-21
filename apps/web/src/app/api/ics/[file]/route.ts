@@ -10,10 +10,12 @@ export const dynamic = "force-dynamic";
 const DAY = 24 * 3600_000;
 
 /**
- * Private ICS feed: /api/ics/<token>.ics. The token is the only credential, so calendar apps
- * (Google Calendar "From URL", Apple, Outlook) can subscribe without a login.
+ * Private ICS feed: /api/ics/<token>.ics?guild=<server ID>. The token is the only credential, so calendar
+ * apps (Google Calendar "From URL", Apple, Outlook) can subscribe without a login. Without ?guild the feed
+ * has every server, which keeps links made before feeds were per server working.
  */
-export async function GET(_req: Request, ctx: Ctx) {
+export async function GET(req: Request, ctx: Ctx) {
+  const guildId = new URL(req.url).searchParams.get("guild");
   const { file } = await ctx.params;
   const token = file.replace(/\.ics$/, "");
   if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) return new Response("Not found", { status: 404 });
@@ -26,6 +28,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   const list = await meetings
     .find({
       ...meetingsForUser(user.discordId, false),
+      ...(guildId ? { guildId } : {}),
       end: { $gt: new Date(now - 60 * DAY) },
       // Keep recently cancelled meetings so subscribed calendars remove them.
       $and: [{ $or: [{ status: "scheduled" }, { status: "cancelled", updatedAt: { $gt: new Date(now - 30 * DAY) } }] }],

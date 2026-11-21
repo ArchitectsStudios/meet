@@ -33,6 +33,8 @@ export interface UserDoc {
 export interface AvailabilityDoc {
   _id?: ObjectId;
   discordId: string;
+  /** Availability is set separately for each server. */
+  guildId: string;
   blocks: AvailabilityBlock[];
   updatedAt: Date;
 }
