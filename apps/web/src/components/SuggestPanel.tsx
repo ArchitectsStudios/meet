@@ -59,7 +59,32 @@ export function SuggestPanel({ guildId, timezone, users, roles, durationMin, dat
   const dragRef = useRef(drag);
   dragRef.current = drag;
 
+  // Load on open and whenever the guests, length or week change. The short delay batches quick edits.
+  const query = JSON.stringify({
+    guildId,
+    users: users.map((u) => [u.discordId, u.required]),
+    roles: roles.map((r) => [r.roleId, r.required]),
+    durationMin,
+    week: weekStart.toMillis(),
+    excludeMeetingId,
+  });
+  useEffect(() => {
+    const t = setTimeout(() => void load(), 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  // Follow the form when its date moves to another week.
+  useEffect(() => {
+    const d = DateTime.fromISO(date, { zone: timezone });
+    if (d.isValid && !weekStartOf(d).equals(weekStart)) setWeekStart(weekStartOf(d));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, timezone]);
+
+  // Ignore answers to requests that a newer one has replaced.
+  const latest = useRef(0);
   const load = async (ws = weekStart) => {
+    const req = ++latest.current;
     setLoading(true);
     setError(null);
     try {
@@ -75,20 +100,17 @@ export function SuggestPanel({ guildId, timezone, users, roles, durationMin, dat
           excludeMeetingId,
         }),
       });
-      setData(res);
+      if (req === latest.current) setData(res);
     } catch (err) {
+      if (req !== latest.current) return;
       setError((err as Error).message);
       setData(null);
     } finally {
-      setLoading(false);
+      if (req === latest.current) setLoading(false);
     }
   };
 
-  const shift = (weeks: number) => {
-    const ws = weekStart.plus({ weeks });
-    setWeekStart(ws);
-    void load(ws);
-  };
+  const shift = (weeks: number) => setWeekStart(weekStart.plus({ weeks }));
 
   // Map heatmap starts to grid cells for display in the viewer's timezone.
   const cellScores = new Map<number, number | null>();
@@ -145,18 +167,14 @@ export function SuggestPanel({ guildId, timezone, users, roles, durationMin, dat
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="btn-primary" disabled={loading} onClick={() => load()}>
-          {loading ? "Finding times…" : data ? "Refresh" : "Find best times"}
-        </button>
         <button type="button" className="btn-ghost" onClick={() => shift(-1)} aria-label="Previous week">
           ‹
         </button>
-        <span className="text-sm">
-          Week of {weekStart.toFormat("d LLL")}
-        </span>
+        <span className="text-sm">Week of {weekStart.toFormat("d LLL")}</span>
         <button type="button" className="btn-ghost" onClick={() => shift(1)} aria-label="Next week">
           ›
         </button>
+        {loading && <span className="text-xs text-muted">Updating…</span>}
       </div>
       {error && <p className="text-sm text-red-300">{error}</p>}
       {data && (

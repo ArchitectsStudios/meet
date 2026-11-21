@@ -64,7 +64,6 @@ export function MeetingForm({ timezone, meId, guild, initial }: Props) {
   );
   const [allRoles, setAllRoles] = useState<RoleSummary[]>([]);
   const [voiceChannels, setVoiceChannels] = useState<VoiceChannelSummary[]>([]);
-  const [showSuggest, setShowSuggest] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -240,16 +239,8 @@ export function MeetingForm({ timezone, meId, guild, initial }: Props) {
       </div>
 
       <div className="card h-fit space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold">Best times</h2>
-          {!showSuggest && (
-            <button type="button" className="btn-ghost" onClick={() => setShowSuggest(true)}>
-              Show
-            </button>
-          )}
-        </div>
-        {showSuggest ? (
-          <SuggestPanel
+        <h2 className="font-semibold">Best times</h2>
+        <SuggestPanel
             guildId={guild.id}
             timezone={timezone}
             users={users}
@@ -260,11 +251,6 @@ export function MeetingForm({ timezone, meId, guild, initial }: Props) {
             excludeMeetingId={initial?._id}
             onPick={pick}
           />
-        ) : (
-          <p className="text-sm text-muted">
-            Add guests, then compare everyone&apos;s weekly availability and existing meetings to find a slot.
-          </p>
-        )}
       </div>
     </form>
   );
