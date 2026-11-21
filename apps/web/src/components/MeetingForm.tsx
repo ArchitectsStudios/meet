@@ -142,8 +142,8 @@ export function MeetingForm({ timezone, meId, guild, initial }: Props) {
             <label className="label" htmlFor="title">Title</label>
             <input id="title" className="input" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="col-span-2 sm:col-span-1">
               <label className="label" htmlFor="date">Date</label>
               <input id="date" type="date" className="input" required value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
@@ -165,7 +165,7 @@ export function MeetingForm({ timezone, meId, guild, initial }: Props) {
           <p className="text-xs text-muted">
             {start.isValid ? `${start.toFormat("cccc d LLLL, HH:mm")} – ${end.toFormat("HH:mm")}` : "Invalid time"} ({timezone})
           </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="label" htmlFor="vc">Voice channel</label>
               <select id="vc" className="input" value={voiceChannelId ?? ""} onChange={(e) => setVoiceChannelId(e.target.value || null)}>

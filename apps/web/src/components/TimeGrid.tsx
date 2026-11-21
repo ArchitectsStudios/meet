@@ -3,7 +3,7 @@
 import { useEffect, useRef, type CSSProperties, type HTMLAttributes, type ReactNode } from "react";
 import { ROW_H, SLOTS_PER_DAY } from "@/lib/client";
 
-const GUTTER = "3.25rem";
+const GUTTER = "2.75rem";
 const COLUMNS = `${GUTTER} repeat(7, minmax(0, 1fr))`;
 
 interface TimeGridProps {
@@ -64,7 +64,7 @@ export function TimeGrid({
         {headers.map((h, i) => (
           <div
             key={i}
-            className={`px-1 py-2.5 text-center text-xs font-semibold tracking-wide text-text/90 ${columnClass?.(i) ?? ""}`}
+            className={`truncate px-0.5 py-2.5 text-center text-[11px] font-semibold tracking-wide text-text/90 sm:px-1 sm:text-xs ${columnClass?.(i) ?? ""}`}
           >
             {h}
           </div>
@@ -80,7 +80,7 @@ export function TimeGrid({
             {Array.from({ length: SLOTS_PER_DAY }, (_, slot) => (
               <div key={slot} className="relative" style={{ height: rowHeight }}>
                 {slot % 2 === 0 && slot > 0 && (
-                  <span className="absolute top-0 right-2 -translate-y-1/2 text-[10px] font-medium text-muted tabular-nums">
+                  <span className="absolute top-0 right-1.5 -translate-y-1/2 text-[10px] font-medium text-muted tabular-nums">
                     {String(slot / 2).padStart(2, "0")}:00
                   </span>
                 )}

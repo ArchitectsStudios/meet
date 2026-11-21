@@ -41,7 +41,7 @@ body {
   @apply w-full rounded-md border border-line bg-panel-2 px-3 py-2 text-sm text-text outline-none placeholder:text-muted focus:border-accent;
 }
 @utility card {
-  @apply rounded-xl border border-line bg-panel p-5;
+  @apply rounded-xl border border-line bg-panel p-4 sm:p-5;
 }
 @utility label {
   @apply mb-1 block text-xs font-semibold tracking-wide text-muted uppercase;

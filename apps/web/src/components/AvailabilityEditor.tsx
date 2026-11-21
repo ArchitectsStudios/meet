@@ -249,7 +249,8 @@ export function AvailabilityEditor({ initialBlocks, onSave, saveLabel = "Save av
         rowHeight={ROW}
         columnClass={(day) => (day >= 5 ? "bg-panel-2/35" : "")}
         cellClass={() => "cursor-crosshair hover:bg-text/[0.04]"}
-        cellProps={(day, slot) => ({ "data-day": String(day), "data-slot": String(slot) })}
+        // touch-action on the cells only: dragging the time column still scrolls on phones.
+        cellProps={(day, slot) => ({ "data-day": String(day), "data-slot": String(slot), style: { touchAction: "none" } })}
         renderOverlay={(day) =>
           dayRuns(shown, day).map((r) => {
             const k = KIND[r.kind];
@@ -261,14 +262,14 @@ export function AvailabilityEditor({ initialBlocks, onSave, saveLabel = "Save av
                 style={{ ...k.style, top: r.start * ROW + 1, height: slots * ROW - 2 }}
               >
                 {slots >= 2 ? (
-                  <div className="pt-1">
+                  <div className="hidden pt-1 sm:block">
                     <div className="truncate text-[11px] font-semibold">{k.label}</div>
                     <div className="truncate text-[10px] tabular-nums opacity-80">
                       {hhmm(r.start)}–{hhmm(r.end)}
                     </div>
                   </div>
                 ) : (
-                  <div className="truncate text-[10px] tabular-nums opacity-80" style={{ lineHeight: `${ROW - 2}px` }}>
+                  <div className="hidden truncate text-[10px] tabular-nums opacity-80 sm:block" style={{ lineHeight: `${ROW - 2}px` }}>
                     {hhmm(r.start)}–{hhmm(r.end)}
                   </div>
                 )}
@@ -290,7 +291,6 @@ export function AvailabilityEditor({ initialBlocks, onSave, saveLabel = "Save av
           )
         }
         containerProps={{
-          style: { touchAction: "none" },
           onPointerDown: (e) => {
             const c = cellAt(e.clientX, e.clientY);
             if (!c) return;
@@ -310,6 +310,7 @@ export function AvailabilityEditor({ initialBlocks, onSave, saveLabel = "Save av
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-muted">
           Drag to paint. Times are in your timezone and repeat every week.
+          <span className="sm:hidden"> To scroll, drag the time column.</span>
         </p>
         <p className="text-xs text-muted tabular-nums">
           <span className="text-ideal-soft">{hours(totals.ideal)} ideal</span>

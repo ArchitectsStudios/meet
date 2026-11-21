@@ -69,11 +69,11 @@ export function GuildSwitcher({ guilds, activeId }: { guilds: GuildSummary[]; ac
         aria-haspopup="listbox"
         aria-expanded={open}
         disabled={busy}
-        className="flex max-w-56 items-center gap-2 rounded-lg border border-line bg-panel-2 py-1 pr-2 pl-1 text-sm transition-colors hover:bg-line disabled:opacity-60"
+        className="flex max-w-56 min-w-0 items-center gap-2 rounded-lg border border-line bg-panel-2 py-1 pr-1.5 pl-1 text-sm transition-colors hover:bg-line disabled:opacity-60 sm:pr-2"
         title="Switch server"
       >
         <GuildIcon guild={active} />
-        <span className="truncate font-medium">{active.name}</span>
+        <span className="hidden truncate font-medium sm:inline">{active.name}</span>
         <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0 text-muted" fill="currentColor" aria-hidden>
           <path d="M5.5 7.5 10 12l4.5-4.5" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -81,7 +81,7 @@ export function GuildSwitcher({ guilds, activeId }: { guilds: GuildSummary[]; ac
       {open && (
         <ul
           role="listbox"
-          className="absolute right-0 z-40 mt-1.5 max-h-80 w-64 overflow-y-auto rounded-lg border border-line bg-panel p-1 shadow-2xl"
+          className="absolute right-0 z-40 mt-1.5 max-h-80 w-64 max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg border border-line bg-panel p-1 shadow-2xl"
         >
           <li className="px-2 pt-1 pb-1.5 text-[11px] font-semibold tracking-wide text-muted uppercase">Servers</li>
           {guilds.map((g) => (

@@ -210,7 +210,7 @@ export function SuggestPanel({ guildId, timezone, users, roles, durationMin, dat
             scrollToHour={8}
             rowHeight={ROW}
             cellClass={(day, slot) => `${heat(cellScores.get(day * SLOTS_PER_DAY + slot))} cursor-crosshair hover:brightness-150`}
-            cellProps={(day, slot) => ({ "data-day": String(day), "data-slot": String(slot) })}
+            cellProps={(day, slot) => ({ "data-day": String(day), "data-slot": String(slot), style: { touchAction: "none" } })}
             renderOverlay={(day) => (
               <>
                 {chosen
@@ -238,7 +238,6 @@ export function SuggestPanel({ guildId, timezone, users, roles, durationMin, dat
               </>
             )}
             containerProps={{
-              style: { touchAction: "none" },
               onPointerDown: (e) => {
                 const c = cellAt(e.clientX, e.clientY);
                 if (!c || cellScores.get(c.day * SLOTS_PER_DAY + c.slot) === undefined) return;
@@ -255,7 +254,8 @@ export function SuggestPanel({ guildId, timezone, users, roles, durationMin, dat
             }}
           />
           <p className="text-xs text-muted">
-            Click a cell to start then, or drag down a day to set the start and end. Darker green = more people ideally
+            Click a cell to start then, or drag down a day to set the start and end. On a phone, drag the time column to
+            scroll. Darker green = more people ideally
             free. Red = a required guest can&apos;t make it.
           </p>
         </>

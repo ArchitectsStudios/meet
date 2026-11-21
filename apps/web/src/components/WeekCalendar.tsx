@@ -86,10 +86,10 @@ export function WeekCalendar({ guildId, timezone, meId, blocks }: Props) {
         <button className="btn-ghost" aria-label="Next week" onClick={() => setWeekStart(weekStart.plus({ weeks: 1 }))}>
           ›
         </button>
-        <h1 className="ml-2 text-lg font-semibold">
+        <h1 className="ml-1 text-base font-semibold sm:ml-2 sm:text-lg">
           {weekStart.toFormat("d LLL")} – {weekEnd.minus({ days: 1 }).toFormat("d LLL yyyy")}
         </h1>
-        <span className="ml-auto text-xs text-muted">{timezone.replace(/_/g, " ")}</span>
+        <span className="ml-auto hidden text-xs text-muted sm:inline">{timezone.replace(/_/g, " ")}</span>
       </div>
       <div className="flex flex-wrap gap-4 text-xs text-muted">
         <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm bg-ideal/25" /> Ideal</span>
