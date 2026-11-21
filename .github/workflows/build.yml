@@ -21,9 +21,7 @@ jobs:
       built_at: ${{ steps.compute.outputs.built_at }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
+      # The runner's own Node is enough. setup-node v5 would turn on pnpm caching here and fail.
       - name: Compute build string
         id: compute
         env:
