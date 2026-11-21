@@ -20,6 +20,7 @@ const FIT_CHIP: Record<Fit, { label: string; cls: string }> = {
   available: { label: "Available", cls: "border-ideal/50 text-ideal-soft" },
   tentative: { label: "Tentative", cls: "border-warn/50 text-yellow-100" },
   unavailable: { label: "Unavailable", cls: "border-unavail/50 text-unavail-soft" },
+  unknown: { label: "Availability Unknown", cls: "border-line text-muted" },
 };
 
 /** Each guest's fit for this meeting's time, from their availability and other meetings in the same server. */

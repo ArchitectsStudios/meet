@@ -4,10 +4,11 @@ import type { AvailabilityBlock } from "./types";
 /**
  * How well a meeting time suits one person:
  * - available: the whole meeting is inside their "ideal" time.
- * - tentative: they can make it, but not all of it is ideal (or they have not set availability).
+ * - tentative: they can make it, but not all of it is ideal.
  * - unavailable: it touches time they marked unavailable, or clashes with another meeting they are going to.
+ * - unknown: they have not set availability for this server (and have no clashing meeting).
  */
-export type Fit = "available" | "tentative" | "unavailable";
+export type Fit = "available" | "tentative" | "unavailable" | "unknown";
 
 export interface FitResult {
   fit: Fit;
@@ -25,7 +26,7 @@ export function meetingFit(
     return { fit: "unavailable", reason: "Has another meeting at this time" };
   }
   if (!person.timezone || person.blocks.length === 0) {
-    return { fit: "tentative", reason: "Has not set their availability" };
+    return { fit: "unknown", reason: "Has not set their availability for this server" };
   }
   const intervals = expandWeekly(person.blocks, person.timezone, meeting.start, meeting.end);
   if (intervals.some((i) => i.kind === "unavailable")) {

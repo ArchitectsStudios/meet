@@ -219,7 +219,7 @@ describe("meetingFit", () => {
   it("is unavailable when clashing with another meeting", () => {
     expect(meetingFit(person, { start: at(10), end: at(11) }, [{ start: at(10, 30), end: at(11, 30) }]).fit).toBe("unavailable");
   });
-  it("is tentative without availability", () => {
-    expect(meetingFit({ timezone: null, blocks: [] }, { start: at(10), end: at(11) }).fit).toBe("tentative");
+  it("is unknown without availability", () => {
+    expect(meetingFit({ timezone: null, blocks: [] }, { start: at(10), end: at(11) }).fit).toBe("unknown");
   });
 });
