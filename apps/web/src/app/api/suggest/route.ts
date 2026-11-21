@@ -5,6 +5,7 @@ import { suggestInputSchema, suggestTimes, type SuggestParticipant } from "@meet
 import { handler, readJson } from "@/lib/api";
 import { apiSession, HttpError } from "@/lib/session";
 import { bot } from "@/lib/bot";
+import { requireGuildMember } from "@/lib/guilds";
 import { loadMeeting, meetingsForUser } from "@/lib/meetings";
 
 const MAX_RANGE_MS = 14 * 24 * 3600_000;
@@ -12,6 +13,7 @@ const MAX_RANGE_MS = 14 * 24 * 3600_000;
 export const POST = handler(async (req: Request) => {
   const s = await apiSession();
   const input = suggestInputSchema.parse(await readJson(req));
+  await requireGuildMember(s.sub, input.guildId);
   const rangeStart = Math.max(input.rangeStart.getTime(), Date.now());
   const rangeEnd = input.rangeEnd.getTime();
   if (rangeEnd <= rangeStart) throw new HttpError(400, "Pick a range in the future");
@@ -25,7 +27,7 @@ export const POST = handler(async (req: Request) => {
   for (const u of input.users) add(u.discordId, u.required);
   for (const r of input.roles) {
     const prev = existing?.organizerId === s.sub ? existing.roleInvites.find((x) => x.roleId === r.roleId) : undefined;
-    const ids = prev ? prev.memberIds : ((await bot.roleMembers(r.roleId))?.members.map((m) => m.id) ?? []);
+    const ids = prev ? prev.memberIds : ((await bot.roleMembers(input.guildId, r.roleId))?.members.map((m) => m.id) ?? []);
     for (const id of ids) add(id, r.required);
   }
   if (required.size > 300) throw new HttpError(400, "Too many people for suggestions");

@@ -10,7 +10,6 @@ if (process.env.NODE_ENV !== "production" && existsSync(rootEnv)) {
 
 const schema = z.object({
   DISCORD_BOT_TOKEN: z.string().min(1),
-  DISCORD_GUILD_ID: z.string().min(1),
   INTERNAL_API_SECRET: z.string().min(16, "INTERNAL_API_SECRET must be at least 16 characters"),
   MONGODB_URI: z.string().min(1),
   APP_URL: z.string().url(),

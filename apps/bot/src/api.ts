@@ -2,7 +2,17 @@ import { timingSafeEqual } from "node:crypto";
 import Fastify from "fastify";
 import { z } from "zod";
 import { notifyRequestSchema } from "@meet/shared";
-import { client, getMember, listRoles, listVoiceChannels, memberSummary, roleMembers, searchMembers } from "./discord";
+import {
+  client,
+  getMember,
+  guildsForUser,
+  listRoles,
+  listVoiceChannels,
+  memberSummary,
+  roleMembers,
+  searchMembers,
+  UnknownGuildError,
+} from "./discord";
 import { env } from "./env";
 import { handleNotify } from "./notify";
 
@@ -35,34 +45,44 @@ export function buildApi() {
     return reply.send({ ok: true, discordReady: client.isReady() });
   });
 
-  app.get("/members", async (req) => {
-    const q = z.object({ q: z.string().default(""), limit: z.coerce.number().int().min(1).max(50).default(20) }).parse(req.query);
-    return searchMembers(q.q, q.limit);
+  const guildParams = z.object({ guildId: z.string() });
+
+  /** Servers the user shares with the bot. An empty list means they may not use the app. */
+  app.get("/users/:id/guilds", async (req) => {
+    const { id } = z.object({ id: z.string() }).parse(req.params);
+    return guildsForUser(id);
   });
 
-  app.get("/members/:id", async (req, reply) => {
-    const { id } = req.params as { id: string };
-    const m = await getMember(id);
+  app.get("/guilds/:guildId/members", async (req) => {
+    const { guildId } = guildParams.parse(req.params);
+    const q = z.object({ q: z.string().default(""), limit: z.coerce.number().int().min(1).max(50).default(20) }).parse(req.query);
+    return searchMembers(guildId, q.q, q.limit);
+  });
+
+  app.get("/guilds/:guildId/members/:id", async (req, reply) => {
+    const { guildId, id } = guildParams.extend({ id: z.string() }).parse(req.params);
+    const m = await getMember(guildId, id);
     if (!m) return reply.code(404).send({ error: "not a member" });
     return memberSummary(m);
   });
 
-  app.post("/members/lookup", async (req) => {
+  app.post("/guilds/:guildId/members/lookup", async (req) => {
+    const { guildId } = guildParams.parse(req.params);
     const { ids } = z.object({ ids: z.array(z.string()).max(500) }).parse(req.body);
-    const out = await Promise.all(ids.map(async (id) => getMember(id)));
+    const out = await Promise.all(ids.map(async (id) => getMember(guildId, id)));
     return out.filter((m) => m !== null).map(memberSummary);
   });
 
-  app.get("/roles", async () => listRoles());
+  app.get("/guilds/:guildId/roles", async (req) => listRoles(guildParams.parse(req.params).guildId));
 
-  app.get("/roles/:id/members", async (req, reply) => {
-    const { id } = req.params as { id: string };
-    const r = roleMembers(id);
+  app.get("/guilds/:guildId/roles/:id/members", async (req, reply) => {
+    const { guildId, id } = guildParams.extend({ id: z.string() }).parse(req.params);
+    const r = roleMembers(guildId, id);
     if (!r) return reply.code(404).send({ error: "unknown role" });
     return r;
   });
 
-  app.get("/voice-channels", async () => listVoiceChannels());
+  app.get("/guilds/:guildId/voice-channels", async (req) => listVoiceChannels(guildParams.parse(req.params).guildId));
 
   app.post("/notify", async (req, reply) => {
     const body = notifyRequestSchema.parse(req.body);
@@ -73,6 +93,7 @@ export function buildApi() {
 
   app.setErrorHandler((err, _req, reply) => {
     if (err instanceof z.ZodError) return reply.code(400).send({ error: "invalid request", issues: err.issues });
+    if (err instanceof UnknownGuildError) return reply.code(404).send({ error: "unknown guild" });
     console.error(err);
     return reply.code(500).send({ error: "internal error" });
   });

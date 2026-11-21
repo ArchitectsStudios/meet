@@ -22,7 +22,7 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
   if (existing.status !== "scheduled") throw new HttpError(409, "This meeting was cancelled");
 
   const input = meetingInputSchema.parse(await readJson(req));
-  const resolved = await resolveInvites(input, existing);
+  const resolved = await resolveInvites(existing.guildId, input, existing);
   const { guests, roleInvites, addedIds, removedIds } = buildGuests(s.sub, resolved, existing);
 
   const timeChanged = existing.start.getTime() !== input.start.getTime() || existing.end.getTime() !== input.end.getTime();

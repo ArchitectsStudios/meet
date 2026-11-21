@@ -44,12 +44,13 @@ export function canView(m: MeetingDoc, discordId: string): boolean {
  * Roles already on the meeting keep their captured members (no sync). New roles are fetched now.
  */
 export async function resolveInvites(
+  guildId: string,
   input: Pick<MeetingInput, "users" | "roles">,
   existing?: MeetingDoc,
 ): Promise<{ users: DirectInvite[]; roles: ResolvedRoleInvite[] }> {
   const knownNames = new Map(existing?.guests.map((g) => [g.discordId, g.displayName]) ?? []);
 
-  const lookedUp = await bot.lookupMembers(input.users.map((u) => u.discordId).filter((id) => !knownNames.has(id)));
+  const lookedUp = await bot.lookupMembers(guildId, input.users.map((u) => u.discordId).filter((id) => !knownNames.has(id)));
   for (const m of lookedUp) knownNames.set(m.id, m.displayName);
 
   const users: DirectInvite[] = input.users.map((u) => {
@@ -69,7 +70,7 @@ export async function resolveInvites(
           members: prev.memberIds.map((id) => ({ discordId: id, displayName: knownNames.get(id) ?? id })),
         };
       }
-      const fetched = await bot.roleMembers(r.roleId);
+      const fetched = await bot.roleMembers(guildId, r.roleId);
       if (!fetched) throw new HttpError(400, `Role ${r.roleId} does not exist`);
       return {
         roleId: r.roleId,

@@ -20,6 +20,8 @@ export interface PickedRole {
 }
 
 interface Props {
+  /** Only members and roles of this server are offered. */
+  guildId: string;
   meId: string;
   roles: RoleSummary[];
   users: PickedUser[];
@@ -42,7 +44,7 @@ function RequiredToggle({ required, onChange }: { required: boolean; onChange: (
 }
 
 /** Search box for server members and roles, plus the chosen guests with required/optional toggles. */
-export function GuestPicker({ meId, roles, users, pickedRoles, onUsers, onRoles }: Props) {
+export function GuestPicker({ guildId, meId, roles, users, pickedRoles, onUsers, onRoles }: Props) {
   const [q, setQ] = useState("");
   const [members, setMembers] = useState<MemberSummary[]>([]);
   const [open, setOpen] = useState(false);
@@ -51,12 +53,14 @@ export function GuestPicker({ meId, roles, users, pickedRoles, onUsers, onRoles 
   useEffect(() => {
     if (!open) return;
     const t = setTimeout(() => {
-      api<MemberSummary[]>(`/api/discord/members?q=${encodeURIComponent(q.replace(/^@/, ""))}`)
+      api<MemberSummary[]>(
+        `/api/discord/members?guild=${encodeURIComponent(guildId)}&q=${encodeURIComponent(q.replace(/^@/, ""))}`,
+      )
         .then(setMembers)
         .catch(() => setMembers([]));
     }, 200);
     return () => clearTimeout(t);
-  }, [q, open]);
+  }, [q, open, guildId]);
 
   useEffect(() => {
     const close = (e: MouseEvent) => {

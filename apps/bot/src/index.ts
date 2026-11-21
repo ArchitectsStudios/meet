@@ -1,7 +1,7 @@
 import { Events } from "discord.js";
 import { getMongoClient } from "@meet/shared/db";
 import { env } from "./env";
-import { client, warmMemberCache } from "./discord";
+import { client, warmAllGuilds, warmGuild } from "./discord";
 import { handleInteraction } from "./interactions";
 import { startReminderLoop } from "./reminders";
 import { buildApi } from "./api";
@@ -17,12 +17,14 @@ async function main() {
 
   client.once(Events.ClientReady, async (c) => {
     console.log(`Logged in as ${c.user.tag}`);
-    try {
-      await warmMemberCache();
-    } catch (err) {
-      console.error("Could not load guild members. Is the bot in the guild, with Server Members Intent on?", err);
-    }
+    await warmAllGuilds();
     stopReminders = startReminderLoop();
+  });
+
+  // A server that adds the bot later needs its members cached before people from it can log in.
+  client.on(Events.GuildCreate, (g) => {
+    console.log(`Joined ${g.name}`);
+    void warmGuild(g);
   });
 
   client.on(Events.InteractionCreate, (interaction) => {

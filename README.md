@@ -1,12 +1,12 @@
 # meet
 
-Schedule meetings with people on your Discord server.
+Schedule meetings with people on your Discord servers.
 
-- Log in with Discord. Only members of the configured server can sign in.
+- Log in with Discord. Anyone who shares a server with the bot can sign in. If you share several, a menu in the top right switches between them; new meetings, guest search, roles and voice channels follow the active server.
 - Set your timezone and a weekly availability pattern: times you are **unavailable** and times that are **ideal**.
 - See your meetings on a week calendar, shaded with your availability.
 - Create meetings with an agenda (Markdown), an optional voice channel, and **required** or **optional** guests. Invite people by name or invite a whole **@role**.
-- **Best times** scores every slot against everyone's availability and existing meetings.
+- **Best times** scores every slot against everyone's availability and existing meetings. Click a slot to set the start, or drag down a day to set the start and end.
 - A Discord bot DMs each guest with RSVP buttons (Going, Maybe, Not going), a link to the voice channel, a reminder before the meeting, and a notice when the meeting changes or is cancelled.
 - A private **ICS feed** per user lets your meetings show up in Google Calendar, Apple Calendar or Outlook.
 
@@ -30,13 +30,13 @@ The web app never talks to Discord's bot API directly. It calls the bot's intern
    - `http://localhost:3000/api/auth/callback/discord` (for development)
 3. Copy the client ID and the client secret.
 4. **Bot**: reset and copy the token. Turn on **Server Members Intent**.
-5. Invite the bot. Open this URL, replacing `CLIENT_ID` (`1024` is the View Channels permission):
+5. Invite the bot. Open this URL, replacing `CLIENT_ID`:
 
    ```
-   https://discord.com/oauth2/authorize?client_id=CLIENT_ID&scope=bot&permissions=1024
+   https://discord.com/oauth2/authorize?client_id=CLIENT_ID&scope=bot+applications.commands&permissions=3072
    ```
 
-6. Copy the server ID: right-click the server and choose *Copy Server ID*. This needs Developer Mode, under User Settings → Advanced.
+   `3072` is View Channels plus Send Messages. Repeat for each server that should use the app. The bot loads a new server's members as soon as it joins.
 
 Guests who have DMs from server members turned off cannot get DMs. The meeting page shows **DM failed** next to them.
 

@@ -33,6 +33,8 @@ const snowflake = z.string().regex(/^\d{5,25}$/, "Invalid Discord ID");
 export const meetingInputSchema = z
   .object({
     title: z.string().trim().min(1).max(120),
+    /** Server for a new meeting. Ignored on edit: a meeting cannot move between servers. */
+    guildId: snowflake,
     agenda: z.string().max(10_000).default(""),
     start: z.coerce.date(),
     end: z.coerce.date(),
@@ -60,6 +62,8 @@ export const rsvpInputSchema = z.object({
 });
 
 export const suggestInputSchema = z.object({
+  /** Server used to look up role members. */
+  guildId: snowflake,
   users: z.array(z.object({ discordId: snowflake, required: z.boolean() })).max(200).default([]),
   roles: z.array(z.object({ roleId: snowflake, required: z.boolean() })).max(25).default([]),
   durationMin: z.number().int().min(15).max(24 * 60),

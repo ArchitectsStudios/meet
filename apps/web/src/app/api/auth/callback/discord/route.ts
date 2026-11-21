@@ -13,6 +13,12 @@ interface DiscordUser {
   avatar: string | null;
 }
 
+function avatarUrl(u: DiscordUser): string {
+  if (u.avatar) return `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64`;
+  // Default avatar for users without one, per Discord's CDN rules for the new username system.
+  return `https://cdn.discordapp.com/embed/avatars/${Number((BigInt(u.id) >> 22n) % 6n)}.png`;
+}
+
 function fail(req: NextRequest, error: string) {
   const url = new URL("/login", env().APP_URL);
   url.searchParams.set("error", error);
@@ -50,13 +56,14 @@ export async function GET(req: NextRequest) {
   if (!meRes.ok) return fail(req, "oauth");
   const me = (await meRes.json()) as DiscordUser;
 
-  let member;
+  // Anyone who shares at least one server with the bot may use the app.
+  let guilds;
   try {
-    member = await bot.getMember(me.id);
+    guilds = await bot.userGuilds(me.id);
   } catch {
     return fail(req, "bot");
   }
-  if (!member) return fail(req, "not_member");
+  if (guilds.length === 0) return fail(req, "not_member");
 
   const { users } = await collections();
   const now = new Date();
@@ -76,7 +83,7 @@ export async function GET(req: NextRequest) {
   );
 
   const token = await signSession(
-    { sub: me.id, name: member.displayName, avatarUrl: member.avatarUrl },
+    { sub: me.id, name: me.global_name ?? me.username, avatarUrl: avatarUrl(me) },
     env().AUTH_SECRET,
   );
   const res = NextResponse.redirect(new URL("/", env().APP_URL));

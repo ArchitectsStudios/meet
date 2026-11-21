@@ -36,7 +36,6 @@ export async function GET(_req: Request, ctx: Ctx) {
 
   const body = buildIcs(list, {
     appUrl: env().APP_URL,
-    guildId: env().DISCORD_GUILD_ID,
     viewerId: user.discordId,
     calendarName: "Meet",
   });

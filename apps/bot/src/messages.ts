@@ -84,7 +84,7 @@ export function buildMeetingMessage(kind: MessageKind, meeting: MeetingDoc, gues
   if (!closed) {
     embed.addFields({ name: "Your invite", value: inviteLine(meeting, guest), inline: true });
     if (meeting.voiceChannelId) {
-      embed.addFields({ name: "Voice channel", value: `[Join voice](${voiceChannelUrl(meeting.voiceChannelId)})` });
+      embed.addFields({ name: "Voice channel", value: `[Join voice](${voiceChannelUrl(meeting.guildId, meeting.voiceChannelId)})` });
     }
     if (agendaExcerpt) embed.addFields({ name: "Agenda", value: agendaExcerpt.slice(0, 1024) });
     embed.addFields({ name: "Your RSVP", value: RSVP_LABEL[guest.rsvp], inline: true });
@@ -115,7 +115,7 @@ export function buildMeetingMessage(kind: MessageKind, meeting: MeetingDoc, gues
   if (publicUrl) linkRow.addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Open meeting").setURL(url));
   if (meeting.voiceChannelId) {
     linkRow.addComponents(
-      new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Join voice").setURL(voiceChannelUrl(meeting.voiceChannelId)),
+      new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Join voice").setURL(voiceChannelUrl(meeting.guildId, meeting.voiceChannelId)),
     );
   }
   if (linkRow.components.length) components.push(linkRow);

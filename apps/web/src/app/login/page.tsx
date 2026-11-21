@@ -1,7 +1,7 @@
 const ERRORS: Record<string, string> = {
   state: "The sign-in link expired. Try again.",
   oauth: "Discord did not accept the sign-in. Try again.",
-  not_member: "You need to be a member of the Discord server to use this app.",
+  not_member: "You need to share a Discord server with the Meetings bot to use this app.",
   bot: "The Discord bot is offline, so membership could not be checked. Try again soon.",
 };
 

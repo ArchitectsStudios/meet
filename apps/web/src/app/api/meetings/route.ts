@@ -5,6 +5,7 @@ import { meetingInputSchema, type MeetingDoc } from "@meet/shared";
 import { handler, readJson } from "@/lib/api";
 import { apiSession, HttpError } from "@/lib/session";
 import { bot } from "@/lib/bot";
+import { requireGuildMember } from "@/lib/guilds";
 import { buildGuests, initialReminderSentAt, meetingsForUser, resolveInvites, serializeMeeting } from "@/lib/meetings";
 
 const rangeSchema = z.object({
@@ -31,7 +32,8 @@ export const POST = handler(async (req: Request) => {
   const input = meetingInputSchema.parse(await readJson(req));
   if (input.end.getTime() < Date.now()) throw new HttpError(400, "That meeting would already be over");
 
-  const resolved = await resolveInvites(input);
+  await requireGuildMember(s.sub, input.guildId);
+  const resolved = await resolveInvites(input.guildId, input);
   const { guests, roleInvites } = buildGuests(s.sub, resolved);
 
   const now = new Date();
@@ -40,6 +42,7 @@ export const POST = handler(async (req: Request) => {
     agenda: input.agenda,
     organizerId: s.sub,
     organizerName: s.name,
+    guildId: input.guildId,
     start: input.start,
     end: input.end,
     voiceChannelId: input.voiceChannelId,

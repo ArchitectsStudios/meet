@@ -72,6 +72,8 @@ export interface MeetingDoc {
   agenda: string;
   organizerId: string;
   organizerName: string;
+  /** Discord server the meeting belongs to. Guests, roles and the voice channel all come from it. */
+  guildId: string;
   start: Date;
   end: Date;
   voiceChannelId: string | null;
@@ -96,6 +98,12 @@ export interface NotifyRequest {
 }
 
 /** Shapes returned by the bot's internal API. */
+export interface GuildSummary {
+  id: string;
+  name: string;
+  iconUrl: string | null;
+}
+
 export interface MemberSummary {
   id: string;
   username: string;

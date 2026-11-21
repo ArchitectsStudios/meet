@@ -163,6 +163,7 @@ describe("ics", () => {
       agenda: "1. Hello",
       organizerId: "org",
       organizerName: "Org",
+      guildId: "999",
       start: new Date("2026-11-23T10:00:00Z"),
       end: new Date("2026-11-23T11:00:00Z"),
       voiceChannelId: "123456",
@@ -174,7 +175,7 @@ describe("ics", () => {
       createdAt: new Date("2026-11-20T00:00:00Z"),
       updatedAt: new Date("2026-11-21T00:00:00Z"),
     };
-    const ics = buildIcs([meeting], { appUrl: "https://meet.architectsstudio.dev", guildId: "999", viewerId: "me" });
+    const ics = buildIcs([meeting], { appUrl: "https://meet.architectsstudio.dev", viewerId: "me" });
     expect(ics).toContain(`UID:${id.toString()}@meet.architectsstudio.dev`);
     expect(ics).toContain("DTSTART:20261123T100000Z");
     expect(ics).toContain("SUMMARY:Sync\\, weekly");

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DateTime } from "luxon";
 import { api, dayPieces, formatRange, SLOT_MIN, SLOTS_PER_DAY, weekStartOf } from "@/lib/client";
 import { TimeGrid } from "./TimeGrid";
 import type { PickedRole, PickedUser } from "./GuestPicker";
+
+const ROW = 18;
 
 interface Slot {
   start: number;
@@ -25,23 +27,37 @@ interface SuggestResponse {
 }
 
 interface Props {
+  guildId: string;
   timezone: string;
   users: PickedUser[];
   roles: PickedRole[];
   durationMin: number;
   /** Date (yyyy-MM-dd) currently in the form; picks which week to search. */
   date: string;
+  /** The time currently chosen in the form, outlined on the grid. */
+  selected: { start: number; end: number } | null;
   excludeMeetingId?: string;
-  onPick: (startMillis: number) => void;
+  /** A click passes only the start; a drag passes the start and end. */
+  onPick: (startMillis: number, endMillis?: number) => void;
 }
 
-export function SuggestPanel({ timezone, users, roles, durationMin, date, excludeMeetingId, onPick }: Props) {
+type Drag = { day: number; s0: number; s1: number };
+
+const hhmm = (slot: number) => {
+  const min = slot * SLOT_MIN;
+  return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+};
+
+export function SuggestPanel({ guildId, timezone, users, roles, durationMin, date, selected, excludeMeetingId, onPick }: Props) {
   const [weekStart, setWeekStart] = useState(() =>
     weekStartOf(DateTime.fromISO(date, { zone: timezone }).isValid ? DateTime.fromISO(date, { zone: timezone }) : DateTime.now().setZone(timezone)),
   );
   const [data, setData] = useState<SuggestResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const dragRef = useRef(drag);
+  dragRef.current = drag;
 
   const load = async (ws = weekStart) => {
     setLoading(true);
@@ -50,6 +66,7 @@ export function SuggestPanel({ timezone, users, roles, durationMin, date, exclud
       const res = await api<SuggestResponse>("/api/suggest", {
         method: "POST",
         body: JSON.stringify({
+          guildId,
           users: users.map((u) => ({ discordId: u.discordId, required: u.required })),
           roles: roles.map((r) => ({ roleId: r.roleId, required: r.required })),
           durationMin,
@@ -89,6 +106,41 @@ export function SuggestPanel({ timezone, users, roles, durationMin, date, exclud
     const r = score / maxScore;
     return r >= 0.75 ? "bg-ideal/70" : r >= 0.5 ? "bg-ideal/45" : r > 0 ? "bg-ideal/25" : score < 0 ? "bg-warn/20" : "bg-ideal/10";
   };
+
+  const slotMillis = (day: number, slot: number) =>
+    weekStart.plus({ days: day }).set({ hour: Math.floor(slot / 2), minute: (slot % 2) * 30 }).toMillis();
+
+  const cellAt = (x: number, y: number): { day: number; slot: number } | null => {
+    const el = document.elementFromPoint(x, y) as HTMLElement | null;
+    const d = el?.dataset.day;
+    const s = el?.dataset.slot;
+    return d !== undefined && s !== undefined ? { day: Number(d), slot: Number(s) } : null;
+  };
+
+  // Releasing the pointer: a plain click sets only the start (the length stays), a drag sets start and end.
+  const finish = useCallback(() => {
+    const d = dragRef.current;
+    if (!d) return;
+    setDrag(null);
+    const lo = Math.min(d.s0, d.s1);
+    const hi = Math.max(d.s0, d.s1);
+    if (lo === hi) onPick(slotMillis(d.day, lo));
+    else onPick(slotMillis(d.day, lo), slotMillis(d.day, hi + 1));
+    // slotMillis depends on weekStart only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onPick, weekStart]);
+
+  useEffect(() => {
+    const up = () => finish();
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  }, [finish]);
+
+  const chosen = selected ? dayPieces(selected.start, selected.end, timezone, weekStart) : [];
 
   return (
     <div className="space-y-3">
@@ -138,18 +190,55 @@ export function SuggestPanel({ timezone, users, roles, durationMin, date, exclud
             headers={Array.from({ length: 7 }, (_, i) => weekStart.plus({ days: i }).toFormat("ccc d"))}
             maxHeight="45vh"
             scrollToHour={8}
-            cellClass={(day, slot) => `${heat(cellScores.get(day * SLOTS_PER_DAY + slot))} cursor-pointer hover:outline hover:outline-accent`}
-            cellProps={(day, slot) => ({
-              onClick: () => {
-                if (cellScores.get(day * SLOTS_PER_DAY + slot) === undefined) return;
-                onPick(weekStart.plus({ days: day }).set({ hour: Math.floor(slot / 2), minute: (slot % 2) * 30 }).toMillis());
+            rowHeight={ROW}
+            cellClass={(day, slot) => `${heat(cellScores.get(day * SLOTS_PER_DAY + slot))} cursor-crosshair hover:brightness-150`}
+            cellProps={(day, slot) => ({ "data-day": String(day), "data-slot": String(slot) })}
+            renderOverlay={(day) => (
+              <>
+                {chosen
+                  .filter((p) => p.day === day && !drag)
+                  .map((p) => (
+                    <div
+                      key={p.startMin}
+                      className="absolute right-0.5 left-0.5 rounded-md border-2 border-accent bg-accent/15"
+                      style={{ top: (p.startMin / SLOT_MIN) * ROW, height: ((p.endMin - p.startMin) / SLOT_MIN) * ROW }}
+                    />
+                  ))}
+                {drag?.day === day && (
+                  <div
+                    className="absolute right-0.5 left-0.5 flex items-start justify-center overflow-hidden rounded-md border-2 border-dashed border-accent bg-accent/25 pt-0.5"
+                    style={{
+                      top: Math.min(drag.s0, drag.s1) * ROW,
+                      height: (Math.abs(drag.s1 - drag.s0) + 1) * ROW,
+                    }}
+                  >
+                    <span className="rounded bg-bg/80 px-1 text-[10px] font-medium text-text tabular-nums">
+                      {hhmm(Math.min(drag.s0, drag.s1))}–{hhmm(Math.max(drag.s0, drag.s1) + 1)}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
+            containerProps={{
+              style: { touchAction: "none" },
+              onPointerDown: (e) => {
+                const c = cellAt(e.clientX, e.clientY);
+                if (!c || cellScores.get(c.day * SLOTS_PER_DAY + c.slot) === undefined) return;
+                e.preventDefault();
+                setDrag({ day: c.day, s0: c.slot, s1: c.slot });
               },
-              title: "Click to use this start time",
-            })}
+              onPointerMove: (e) => {
+                const d = dragRef.current;
+                if (!d) return;
+                const c = cellAt(e.clientX, e.clientY);
+                // A meeting stays within the day the drag started on.
+                if (c && c.slot !== d.s1) setDrag({ ...d, s1: c.slot });
+              },
+            }}
           />
           <p className="text-xs text-muted">
-            Each cell is a possible start time. Darker green = more people ideally free. Red = a required guest can&apos;t make
-            it.
+            Click a cell to start then, or drag down a day to set the start and end. Darker green = more people ideally
+            free. Red = a required guest can&apos;t make it.
           </p>
         </>
       )}

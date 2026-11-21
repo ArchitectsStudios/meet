@@ -4,7 +4,6 @@ import { z } from "zod";
 const schema = z.object({
   DISCORD_CLIENT_ID: z.string().min(1),
   DISCORD_CLIENT_SECRET: z.string().min(1),
-  DISCORD_GUILD_ID: z.string().min(1),
   AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
   INTERNAL_API_SECRET: z.string().min(16),
   MONGODB_URI: z.string().min(1),

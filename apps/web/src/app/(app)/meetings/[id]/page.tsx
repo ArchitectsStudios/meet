@@ -5,7 +5,6 @@ import remarkGfm from "remark-gfm";
 import type { Guest, Rsvp } from "@meet/shared";
 import { requireOnboardedUser } from "@/lib/session";
 import { canView, loadMeeting } from "@/lib/meetings";
-import { env } from "@/lib/env";
 import { formatRange } from "@/lib/client";
 import { MeetingActions, RsvpButtons } from "./MeetingActions";
 
@@ -43,7 +42,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
   const direct = m.guests.filter((g) => g.direct);
   const roleOnly = (roleId: string) => m.guests.filter((g) => g.roleIds.includes(roleId));
   const accepted = m.guests.filter((g) => g.rsvp === "accepted").length;
-  const vcUrl = m.voiceChannelId ? `https://discord.com/channels/${env().DISCORD_GUILD_ID}/${m.voiceChannelId}` : null;
+  const vcUrl = m.voiceChannelId ? `https://discord.com/channels/${m.guildId}/${m.voiceChannelId}` : null;
   const cancelled = m.status === "cancelled";
 
   return (

@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DateTime } from "luxon";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { RoleSummary, VoiceChannelSummary } from "@meet/shared";
+import type { GuildSummary, RoleSummary, VoiceChannelSummary } from "@meet/shared";
 import type { MeetingJson } from "@/lib/meetings";
 import { api } from "@/lib/client";
 import { GuestPicker, type PickedRole, type PickedUser } from "./GuestPicker";
 import { SuggestPanel } from "./SuggestPanel";
+import { GuildIcon } from "./GuildSwitcher";
 
 const DURATIONS = [15, 30, 45, 60, 90, 120, 180, 240];
 const REMINDERS: { value: number; label: string }[] = [
@@ -24,6 +25,8 @@ const REMINDERS: { value: number; label: string }[] = [
 interface Props {
   timezone: string;
   meId: string;
+  /** Server the meeting belongs to: the active server for a new meeting, the meeting's own when editing. */
+  guild: GuildSummary;
   initial?: MeetingJson;
 }
 
@@ -33,7 +36,7 @@ function nextHalfHour(tz: string): DateTime {
   return now.plus({ minutes: add }).startOf("minute");
 }
 
-export function MeetingForm({ timezone, meId, initial }: Props) {
+export function MeetingForm({ timezone, meId, guild, initial }: Props) {
   const router = useRouter();
   const start0 = initial ? DateTime.fromISO(initial.start, { zone: timezone }) : nextHalfHour(timezone).plus({ hours: 1 });
   const dur0 = initial ? Math.round((Date.parse(initial.end) - Date.parse(initial.start)) / 60_000) : 60;
@@ -66,27 +69,40 @@ export function MeetingForm({ timezone, meId, initial }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Switching server in the header while creating a meeting: guests and channels from the old server no longer apply.
+  const guildRef = useRef(guild.id);
   useEffect(() => {
-    api<RoleSummary[]>("/api/discord/roles")
+    if (guildRef.current === guild.id) return;
+    guildRef.current = guild.id;
+    setUsers([]);
+    setRoles([]);
+    setVoiceChannelId(null);
+  }, [guild.id]);
+
+  useEffect(() => {
+    const q = `guild=${encodeURIComponent(guild.id)}`;
+    api<RoleSummary[]>(`/api/discord/roles?${q}`)
       .then((list) => {
         setAllRoles(list);
         // Fill in colours for roles loaded from an existing meeting.
         setRoles((prev) => prev.map((r) => ({ ...r, color: list.find((x) => x.id === r.roleId)?.color ?? r.color })));
       })
       .catch((err) => setError(`Could not load roles: ${(err as Error).message}`));
-    api<VoiceChannelSummary[]>("/api/discord/voice-channels")
+    api<VoiceChannelSummary[]>(`/api/discord/voice-channels?${q}`)
       .then(setVoiceChannels)
       .catch(() => {});
-  }, []);
+  }, [guild.id]);
 
   const start = useMemo(() => DateTime.fromISO(`${date}T${time}`, { zone: timezone }), [date, time, timezone]);
   const end = start.plus({ minutes: duration });
   const durations = DURATIONS.includes(duration) ? DURATIONS : [...DURATIONS, duration].sort((a, b) => a - b);
 
-  const pick = (ms: number) => {
+  /** From Best times: a start, plus an end when the user dragged out a range. */
+  const pick = (ms: number, endMs?: number) => {
     const dt = DateTime.fromMillis(ms, { zone: timezone });
     setDate(dt.toISODate()!);
     setTime(dt.toFormat("HH:mm"));
+    if (endMs !== undefined && endMs > ms) setDuration(Math.round((endMs - ms) / 60_000));
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -95,6 +111,7 @@ export function MeetingForm({ timezone, meId, initial }: Props) {
     setSaving(true);
     setError(null);
     const body = JSON.stringify({
+      guildId: guild.id,
       title,
       agenda,
       start: start.toUTC().toISO(),
@@ -123,6 +140,12 @@ export function MeetingForm({ timezone, meId, initial }: Props) {
     <form onSubmit={submit} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
       <div className="space-y-4">
         <div className="card space-y-4">
+          <div className="flex items-center gap-2 text-sm text-muted">
+            <GuildIcon guild={guild} size={20} />
+            <span>
+              {initial ? "In" : "Creating in"} <span className="font-medium text-text">{guild.name}</span>
+            </span>
+          </div>
           <div>
             <label className="label" htmlFor="title">Title</label>
             <input id="title" className="input" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -178,7 +201,7 @@ export function MeetingForm({ timezone, meId, initial }: Props) {
 
         <div className="card space-y-3">
           <span className="label">Guests</span>
-          <GuestPicker meId={meId} roles={allRoles} users={users} pickedRoles={roles} onUsers={setUsers} onRoles={setRoles} />
+          <GuestPicker guildId={guild.id} meId={meId} roles={allRoles} users={users} pickedRoles={roles} onUsers={setUsers} onRoles={setRoles} />
         </div>
 
         <div className="card space-y-2">
@@ -234,11 +257,13 @@ export function MeetingForm({ timezone, meId, initial }: Props) {
         </div>
         {showSuggest ? (
           <SuggestPanel
+            guildId={guild.id}
             timezone={timezone}
             users={users}
             roles={roles}
             durationMin={duration}
             date={date}
+            selected={start.isValid ? { start: start.toMillis(), end: end.toMillis() } : null}
             excludeMeetingId={initial?._id}
             onPick={pick}
           />

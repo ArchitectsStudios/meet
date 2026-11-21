@@ -1,5 +1,5 @@
 import "server-only";
-import type { MemberSummary, NotifyRequest, RoleSummary, VoiceChannelSummary } from "@meet/shared";
+import type { GuildSummary, MemberSummary, NotifyRequest, RoleSummary, VoiceChannelSummary } from "@meet/shared";
 import { env } from "./env";
 import { HttpError } from "./session";
 
@@ -25,16 +25,27 @@ async function botFetch<T>(path: string, init: RequestInit = {}): Promise<T | nu
   return (await res.json()) as T;
 }
 
+const g = (guildId: string) => `/guilds/${encodeURIComponent(guildId)}`;
+
 export const bot = {
-  searchMembers: (q: string) => botFetch<MemberSummary[]>(`/members?q=${encodeURIComponent(q)}&limit=20`).then((r) => r ?? []),
-  getMember: (id: string) => botFetch<MemberSummary>(`/members/${encodeURIComponent(id)}`),
-  lookupMembers: (ids: string[]) =>
+  /** Servers the user shares with the bot. */
+  userGuilds: (userId: string) =>
+    botFetch<GuildSummary[]>(`/users/${encodeURIComponent(userId)}/guilds`).then((r) => r ?? []),
+  searchMembers: (guildId: string, q: string) =>
+    botFetch<MemberSummary[]>(`${g(guildId)}/members?q=${encodeURIComponent(q)}&limit=20`).then((r) => r ?? []),
+  /** Null when the user is not in the server, or the bot is not. */
+  getMember: (guildId: string, id: string) => botFetch<MemberSummary>(`${g(guildId)}/members/${encodeURIComponent(id)}`),
+  lookupMembers: (guildId: string, ids: string[]) =>
     ids.length
-      ? botFetch<MemberSummary[]>("/members/lookup", { method: "POST", body: JSON.stringify({ ids }) }).then((r) => r ?? [])
+      ? botFetch<MemberSummary[]>(`${g(guildId)}/members/lookup`, { method: "POST", body: JSON.stringify({ ids }) }).then(
+          (r) => r ?? [],
+        )
       : Promise.resolve([] as MemberSummary[]),
-  listRoles: () => botFetch<RoleSummary[]>("/roles").then((r) => r ?? []),
-  roleMembers: (id: string) => botFetch<{ role: RoleSummary; members: MemberSummary[] }>(`/roles/${encodeURIComponent(id)}/members`),
-  listVoiceChannels: () => botFetch<VoiceChannelSummary[]>("/voice-channels").then((r) => r ?? []),
+  listRoles: (guildId: string) => botFetch<RoleSummary[]>(`${g(guildId)}/roles`).then((r) => r ?? []),
+  roleMembers: (guildId: string, id: string) =>
+    botFetch<{ role: RoleSummary; members: MemberSummary[] }>(`${g(guildId)}/roles/${encodeURIComponent(id)}/members`),
+  listVoiceChannels: (guildId: string) =>
+    botFetch<VoiceChannelSummary[]>(`${g(guildId)}/voice-channels`).then((r) => r ?? []),
   /** Best effort: a failed notify must not fail the meeting change itself. */
   notify: async (req: NotifyRequest) => {
     try {

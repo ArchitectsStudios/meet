@@ -3,7 +3,6 @@ import type { MeetingDoc } from "./types";
 export interface IcsOptions {
   /** Public app URL, used for event links and UIDs. */
   appUrl: string;
-  guildId: string;
   calendarName?: string;
   /** Viewer's Discord ID; sets their PARTSTAT. */
   viewerId: string;
@@ -74,7 +73,7 @@ export function buildIcs(meetings: MeetingDoc[], opts: IcsOptions): string {
     const url = `${opts.appUrl.replace(/\/$/, "")}/meetings/${id}`;
     const descParts = [url];
     if (m.voiceChannelId) {
-      descParts.push(`Voice channel: https://discord.com/channels/${opts.guildId}/${m.voiceChannelId}`);
+      descParts.push(`Voice channel: https://discord.com/channels/${m.guildId}/${m.voiceChannelId}`);
     }
     const me = m.guests.find((g) => g.discordId === opts.viewerId);
     if (me) descParts.push(me.required ? "You are a required guest." : "You are an optional guest.");
