@@ -193,6 +193,17 @@ export function AvailabilityEditor({ initialBlocks, onSave, saveLabel = "Save av
 
   return (
     <div className="space-y-3">
+      <div className="max-w-3xl space-y-1.5 text-sm leading-relaxed text-muted">
+        <p>
+          Mark any times you&apos;d prefer to have meetings as <span className="font-medium text-ideal-soft">Ideal</span>, and
+          the times when you are <span className="font-medium text-unavail-soft">Unavailable</span>.
+        </p>
+        <p>
+          Anything not marked Ideal or Unavailable counts as <span className="font-medium text-text">tentative</span>: for
+          example, you could stay up an hour later every so often to fit a meeting in, or move something else to make it
+          work.
+        </p>
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-lg border border-line bg-panel-2 p-1" role="radiogroup" aria-label="Brush">
           {BRUSHES.map((b) => {
@@ -298,7 +309,7 @@ export function AvailabilityEditor({ initialBlocks, onSave, saveLabel = "Save av
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-muted">
-          Drag to paint. Times are in your timezone and repeat every week. Unmarked time counts as available, but not ideal.
+          Drag to paint. Times are in your timezone and repeat every week.
         </p>
         <p className="text-xs text-muted tabular-nums">
           <span className="text-ideal-soft">{hours(totals.ideal)} ideal</span>
