@@ -25,6 +25,8 @@ spec:
     metadata:
       labels: { app: web }
     spec:
+      # Without this, Kubernetes injects BOT_PORT=tcp://... for the "bot" Service, which breaks our BOT_PORT setting.
+      enableServiceLinks: false
       imagePullSecrets:
         - name: ghcr-pull
       containers:
