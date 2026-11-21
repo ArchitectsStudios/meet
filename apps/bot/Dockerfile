@@ -18,6 +18,15 @@ RUN pnpm --filter @meet/bot build \
  && pnpm --filter @meet/bot deploy --prod --legacy /out
 
 FROM node:22-alpine AS runtime
+# Build identity from CI (scripts/compute-build-string.mjs), logged at startup.
+ARG MEET_BUILD_STRING="untracked version"
+ARG MEET_BUILD_BRANCH=""
+ARG MEET_BUILD_COMMIT=""
+ARG MEET_BUILD_TIME=""
+ENV MEET_BUILD_STRING=${MEET_BUILD_STRING} \
+    MEET_BUILD_BRANCH=${MEET_BUILD_BRANCH} \
+    MEET_BUILD_COMMIT=${MEET_BUILD_COMMIT} \
+    MEET_BUILD_TIME=${MEET_BUILD_TIME}
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build --chown=node:node /out/node_modules ./node_modules

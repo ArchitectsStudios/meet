@@ -8,7 +8,7 @@ const ERRORS: Record<string, string> = {
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
+    <main className="flex min-h-[80vh] items-center justify-center p-4">
       <div className="card w-full max-w-sm text-center">
         <h1 className="mb-1 text-2xl font-semibold">Meet</h1>
         <p className="mb-6 text-sm text-muted">Find a time that works and invite people from your Discord server.</p>

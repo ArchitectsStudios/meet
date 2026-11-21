@@ -8,7 +8,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { session } = await requireOnboardedUser();
   const { guilds, active } = await activeGuild(session.sub);
   return (
-    <div className="min-h-screen">
+    <div>
       <header className="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur">
         <nav className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-2.5 sm:gap-4 sm:py-3">
           <Link href="/" className="text-lg font-semibold">

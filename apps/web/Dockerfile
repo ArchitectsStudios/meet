@@ -14,9 +14,26 @@ FROM deps AS build
 COPY packages/shared packages/shared
 COPY apps/web apps/web
 ENV NEXT_TELEMETRY_DISABLED=1
+# Build identity from CI (scripts/compute-build-string.mjs). Pages rendered at build time read it too.
+ARG MEET_BUILD_STRING="untracked version"
+ARG MEET_BUILD_BRANCH=""
+ARG MEET_BUILD_COMMIT=""
+ARG MEET_BUILD_TIME=""
+ENV MEET_BUILD_STRING=${MEET_BUILD_STRING} \
+    MEET_BUILD_BRANCH=${MEET_BUILD_BRANCH} \
+    MEET_BUILD_COMMIT=${MEET_BUILD_COMMIT} \
+    MEET_BUILD_TIME=${MEET_BUILD_TIME}
 RUN pnpm --filter @meet/web build
 
 FROM node:22-alpine AS runtime
+ARG MEET_BUILD_STRING="untracked version"
+ARG MEET_BUILD_BRANCH=""
+ARG MEET_BUILD_COMMIT=""
+ARG MEET_BUILD_TIME=""
+ENV MEET_BUILD_STRING=${MEET_BUILD_STRING} \
+    MEET_BUILD_BRANCH=${MEET_BUILD_BRANCH} \
+    MEET_BUILD_COMMIT=${MEET_BUILD_COMMIT} \
+    MEET_BUILD_TIME=${MEET_BUILD_TIME}
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \

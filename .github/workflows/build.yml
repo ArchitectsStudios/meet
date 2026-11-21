@@ -10,6 +10,34 @@ permissions:
   packages: write
 
 jobs:
+  # Bungie-style build string, {seq}.{yy}.{mm}.{dd}.{hhmm}.{branch}; seq is the run number.
+  # See scripts/compute-build-string.mjs.
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      build_string: ${{ steps.compute.outputs.build_string }}
+      branch: ${{ steps.compute.outputs.branch }}
+      commit: ${{ steps.compute.outputs.commit }}
+      built_at: ${{ steps.compute.outputs.built_at }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Compute build string
+        id: compute
+        env:
+          MEET_BRANCH: ${{ github.head_ref || github.ref_name }}
+          MEET_SEQ: ${{ github.run_number }}
+        run: |
+          INFO=$(node scripts/compute-build-string.mjs)
+          field() { node -e "process.stdout.write(String(JSON.parse(process.argv[1])[process.argv[2]]))" "$INFO" "$1"; }
+          echo "build_string=$(field buildString)" >> "$GITHUB_OUTPUT"
+          echo "branch=$(field branch)" >> "$GITHUB_OUTPUT"
+          echo "commit=$(field commit)" >> "$GITHUB_OUTPUT"
+          echo "built_at=$(field builtAt)" >> "$GITHUB_OUTPUT"
+          echo "Build $(field buildString)"
+
   check:
     runs-on: ubuntu-latest
     steps:
@@ -24,7 +52,7 @@ jobs:
       - run: pnpm test
 
   images:
-    needs: check
+    needs: [prepare, check]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
@@ -46,8 +74,41 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/meet-${{ matrix.app }}:${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/meet-${{ matrix.app }}:latest
+          build-args: |
+            MEET_BUILD_STRING=${{ needs.prepare.outputs.build_string }}
+            MEET_BUILD_BRANCH=${{ needs.prepare.outputs.branch }}
+            MEET_BUILD_COMMIT=${{ needs.prepare.outputs.commit }}
+            MEET_BUILD_TIME=${{ needs.prepare.outputs.built_at }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+  # Tags the commit with its build string, as Datamine Explorer does.
+  tag:
+    needs: [prepare, images]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create build tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.prepare.outputs.build_string }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$TAG" || "$TAG" == "untracked version" ]]; then
+            echo "Refusing to tag untracked build"
+            exit 1
+          fi
+          if gh api "repos/${REPO}/git/ref/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+            exit 0
+          fi
+          TAG_SHA=$(gh api "repos/${REPO}/git/tags" -f tag="$TAG" -f message="Build $TAG" -f object="$SHA" -f type=commit --jq .sha)
+          gh api "repos/${REPO}/git/refs" -f ref="refs/tags/${TAG}" -f sha="$TAG_SHA" >/dev/null
+          echo "Tagged $SHA as $TAG"
 
   # Turn on by setting the repository variable DEPLOY_ENABLED=true and the secrets
   # VPS_HOST, VPS_USER and VPS_SSH_KEY. The VPS user needs kubectl access to the cluster.

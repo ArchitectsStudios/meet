@@ -7,6 +7,7 @@ import { startReminderLoop } from "./reminders";
 import { buildApi } from "./api";
 
 async function main() {
+  console.log(`meet bot ${process.env.MEET_BUILD_STRING || "untracked version"}${process.env.MEET_BUILD_COMMIT ? ` (${process.env.MEET_BUILD_COMMIT})` : ""}`);
   await getMongoClient(env.MONGODB_URI);
 
   const api = buildApi();
