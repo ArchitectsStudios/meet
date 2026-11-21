@@ -162,17 +162,6 @@ export function AvailabilityEditor({ initialBlocks, onSave, saveLabel = "Save av
     };
   }, [commit]);
 
-  const copyMondayToWeekdays = () => {
-    setCells((prev) => {
-      const next = [...prev];
-      for (let day = 1; day < 5; day++) {
-        for (let s = 0; s < SLOTS_PER_DAY; s++) next[day * SLOTS_PER_DAY + s] = prev[s]!;
-      }
-      return next;
-    });
-    setDirty(true);
-  };
-
   // While dragging, show the result live so the grid always looks like what will be saved.
   const shown = useMemo(() => (drag ? applyDrag(cells, drag, brush) : cells), [cells, drag, brush]);
   const blocks = useMemo(() => cellsToBlocks(cells), [cells]);
@@ -231,13 +220,6 @@ export function AvailabilityEditor({ initialBlocks, onSave, saveLabel = "Save av
           })}
         </div>
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            className="rounded-md px-2.5 py-1.5 text-sm text-muted transition-colors hover:bg-panel-2 hover:text-text"
-            onClick={copyMondayToWeekdays}
-          >
-            Copy Monday to Tue–Fri
-          </button>
           <button
             type="button"
             className="rounded-md px-2.5 py-1.5 text-sm text-muted transition-colors hover:bg-panel-2 hover:text-text"
