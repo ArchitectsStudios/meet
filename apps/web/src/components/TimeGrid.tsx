@@ -37,6 +37,12 @@ function gridLines(rowHeight: number): CSSProperties {
   };
 }
 
+/** One half-hour cell. Extra props may carry their own style, which must not replace the row height. */
+function Cell({ className, height, extra }: { className: string; height: number; extra?: HTMLAttributes<HTMLDivElement> }) {
+  const { style, ...rest } = extra ?? {};
+  return <div className={className} {...rest} style={{ ...style, height }} />;
+}
+
 /** A 7-column grid with 48 half-hour rows and hour labels. Used by the calendar, editor, and heatmap. */
 export function TimeGrid({
   headers,
@@ -94,7 +100,12 @@ export function TimeGrid({
               style={{ gridColumn: day + 2, gridRow: 1, ...gridLines(rowHeight) }}
             >
               {Array.from({ length: SLOTS_PER_DAY }, (_, slot) => (
-                <div key={slot} className={cellClass?.(day, slot) ?? ""} style={{ height: rowHeight }} {...cellProps?.(day, slot)} />
+                <Cell
+                  key={slot}
+                  className={cellClass?.(day, slot) ?? ""}
+                  height={rowHeight}
+                  extra={cellProps?.(day, slot)}
+                />
               ))}
               {renderOverlay && <div className="pointer-events-none absolute inset-0">{renderOverlay(day)}</div>}
             </div>
