@@ -25,17 +25,19 @@ export interface MergeResult {
 /**
  * Builds the guest list from direct and role invites.
  * - A person invited directly and through roles becomes one guest. They are required if any invite is required.
- * - The organizer is never a guest.
+ * - The organizer is always the first guest: required, going, and marked as organizer. Their own name or
+ *   role invites do not change that.
  * - Existing guests keep their RSVP and DM state.
  */
 export function mergeGuests(
-  organizerId: string,
+  organizer: { discordId: string; displayName: string },
   users: DirectInvite[],
   roles: ResolvedRoleInvite[],
   existing: Guest[] = [],
 ): MergeResult {
   const prev = new Map(existing.map((g) => [g.discordId, g]));
   const next = new Map<string, Guest>();
+  const organizerId = organizer.discordId;
 
   const upsert = (discordId: string, displayName: string): Guest => {
     let g = next.get(discordId);
@@ -56,6 +58,11 @@ export function mergeGuests(
     }
     return g;
   };
+
+  const org = upsert(organizerId, organizer.displayName);
+  org.organizer = true;
+  org.required = true;
+  if (!prev.has(organizerId)) org.rsvp = "accepted";
 
   for (const u of users) {
     if (u.discordId === organizerId) continue;

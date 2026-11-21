@@ -34,7 +34,7 @@ export const POST = handler(async (req: Request) => {
 
   await requireGuildMember(s.sub, input.guildId);
   const resolved = await resolveInvites(input.guildId, input);
-  const { guests, roleInvites } = buildGuests(s.sub, resolved);
+  const { guests, roleInvites } = buildGuests({ discordId: s.sub, displayName: s.name }, resolved);
 
   const now = new Date();
   const doc: MeetingDoc = {

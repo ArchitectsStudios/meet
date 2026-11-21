@@ -76,7 +76,9 @@ export function buildIcs(meetings: MeetingDoc[], opts: IcsOptions): string {
       descParts.push(`Voice channel: https://discord.com/channels/${m.guildId}/${m.voiceChannelId}`);
     }
     const me = m.guests.find((g) => g.discordId === opts.viewerId);
-    if (me) descParts.push(me.required ? "You are a required guest." : "You are an optional guest.");
+    if (me) {
+      descParts.push(me.organizer ? "You are organizing." : me.required ? "You are a required guest." : "You are an optional guest.");
+    }
     if (m.agenda.trim()) descParts.push("", "Agenda:", m.agenda.trim());
 
     lines.push(

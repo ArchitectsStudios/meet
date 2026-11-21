@@ -51,6 +51,8 @@ export interface Guest {
   roleIds: string[];
   rsvp: Rsvp;
   dmStatus: DmStatus;
+  /** The meeting's organizer, listed as a guest so they see it in the list and get the same DMs. */
+  organizer?: boolean;
   /** Channel and message of the invite DM, so the bot can edit it after an RSVP. */
   dmChannelId?: string;
   dmMessageId?: string;

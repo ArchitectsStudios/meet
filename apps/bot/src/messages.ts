@@ -39,10 +39,10 @@ export function meetingUrl(meeting: MeetingDoc): string {
   return `${env.APP_URL.replace(/\/$/, "")}/meetings/${meeting._id!.toString()}`;
 }
 
-function heading(kind: MessageKind, meeting: MeetingDoc): string {
+function heading(kind: MessageKind, meeting: MeetingDoc, guest: Guest): string {
   switch (kind) {
     case "invite":
-      return `You're invited: ${meeting.title}`;
+      return guest.organizer ? `Meeting created: ${meeting.title}` : `You're invited: ${meeting.title}`;
     case "update":
       return `Updated: ${meeting.title}`;
     case "cancel":
@@ -55,6 +55,7 @@ function heading(kind: MessageKind, meeting: MeetingDoc): string {
 }
 
 function inviteLine(meeting: MeetingDoc, guest: Guest): string {
+  if (guest.organizer) return "You're organizing";
   const how = guest.required ? "**Required**" : "Optional";
   const roles = guest.roleIds
     .map((id) => meeting.roleInvites.find((r) => r.roleId === id)?.roleName)
@@ -76,7 +77,7 @@ export function buildMeetingMessage(kind: MessageKind, meeting: MeetingDoc, gues
   const closed = CLOSED.has(kind);
   const embed = new EmbedBuilder()
     .setColor(COLORS[kind])
-    .setTitle(heading(kind, meeting))
+    .setTitle(heading(kind, meeting, guest))
     .addFields(
       { name: "When", value: `<t:${startUnix}:F> – <t:${endUnix}:t> (<t:${startUnix}:R>)` },
       { name: "Organizer", value: meeting.organizerName, inline: true },
@@ -87,7 +88,7 @@ export function buildMeetingMessage(kind: MessageKind, meeting: MeetingDoc, gues
       embed.addFields({ name: "Voice channel", value: `[Join voice](${voiceChannelUrl(meeting.guildId, meeting.voiceChannelId)})` });
     }
     if (agendaExcerpt) embed.addFields({ name: "Agenda", value: agendaExcerpt.slice(0, 1024) });
-    embed.addFields({ name: "Your RSVP", value: RSVP_LABEL[guest.rsvp], inline: true });
+    if (!guest.organizer) embed.addFields({ name: "Your RSVP", value: RSVP_LABEL[guest.rsvp], inline: true });
   }
   if (publicUrl && kind !== "removed") embed.setURL(url);
   if (!publicUrl && kind !== "removed") embed.setDescription(url);
@@ -110,7 +111,8 @@ export function buildMeetingMessage(kind: MessageKind, meeting: MeetingDoc, gues
       .setLabel("Not going")
       .setStyle(guest.rsvp === "declined" ? ButtonStyle.Danger : ButtonStyle.Secondary),
   );
-  components.push(rsvpRow);
+  // The organizer changes the meeting on the website instead of answering it.
+  if (!guest.organizer) components.push(rsvpRow);
   const linkRow = new ActionRowBuilder<ButtonBuilder>();
   if (publicUrl) linkRow.addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Open meeting").setURL(url));
   if (meeting.voiceChannelId) {

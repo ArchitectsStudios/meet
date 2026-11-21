@@ -23,7 +23,7 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
 
   const input = meetingInputSchema.parse(await readJson(req));
   const resolved = await resolveInvites(existing.guildId, input, existing);
-  const { guests, roleInvites, addedIds, removedIds } = buildGuests(s.sub, resolved, existing);
+  const { guests, roleInvites, addedIds, removedIds } = buildGuests({ discordId: s.sub, displayName: existing.organizerName }, resolved, existing);
 
   const timeChanged = existing.start.getTime() !== input.start.getTime() || existing.end.getTime() !== input.end.getTime();
   const detailsChanged =

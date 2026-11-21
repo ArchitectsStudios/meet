@@ -84,8 +84,12 @@ export async function resolveInvites(
   return { users, roles };
 }
 
-export function buildGuests(organizerId: string, resolved: Awaited<ReturnType<typeof resolveInvites>>, existing?: MeetingDoc) {
-  return mergeGuests(organizerId, resolved.users, resolved.roles, existing?.guests ?? []);
+export function buildGuests(
+  organizer: { discordId: string; displayName: string },
+  resolved: Awaited<ReturnType<typeof resolveInvites>>,
+  existing?: MeetingDoc,
+) {
+  return mergeGuests(organizer, resolved.users, resolved.roles, existing?.guests ?? []);
 }
 
 /** A reminder whose time has already passed when the meeting is saved would only repeat the invite. */

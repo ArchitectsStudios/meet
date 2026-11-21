@@ -20,7 +20,11 @@ function GuestRow({ g }: { g: Guest }) {
   return (
     <li className="flex items-center gap-2 py-1 text-sm">
       <span>{g.displayName}</span>
-      <span className={`text-[10px] uppercase ${g.required ? "text-accent" : "text-muted"}`}>{g.required ? "required" : "optional"}</span>
+      {g.organizer ? (
+        <span className="text-[10px] text-accent uppercase">organizer</span>
+      ) : (
+        <span className={`text-[10px] uppercase ${g.required ? "text-accent" : "text-muted"}`}>{g.required ? "required" : "optional"}</span>
+      )}
       {g.dmStatus === "failed" && (
         <span className="text-[10px] text-warn" title="The bot could not DM this person. Their DMs may be closed.">
           DM failed
@@ -39,7 +43,8 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
 
   const isOrganizer = m.organizerId === user.discordId;
   const me = m.guests.find((g) => g.discordId === user.discordId);
-  const direct = m.guests.filter((g) => g.direct);
+  const organizerGuest = m.guests.find((g) => g.organizer);
+  const direct = m.guests.filter((g) => g.direct && !g.organizer);
   const roleOnly = (roleId: string) => m.guests.filter((g) => g.roleIds.includes(roleId));
   const accepted = m.guests.filter((g) => g.rsvp === "accepted").length;
   const vcUrl = m.voiceChannelId ? `https://discord.com/channels/${m.guildId}/${m.voiceChannelId}` : null;
@@ -64,7 +69,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
             )}
             {isOrganizer && !cancelled && <MeetingActions id={id} />}
           </div>
-          {me && !cancelled && (
+          {me && !me.organizer && !cancelled && (
             <div className="border-t border-line pt-3">
               <p className="mb-2 text-sm">
                 You are {me.required ? <strong>required</strong> : "optional"}. Your answer:
@@ -93,8 +98,9 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
             {accepted}/{m.guests.length} going
           </span>
         </div>
-        {direct.length > 0 && (
+        {(organizerGuest || direct.length > 0) && (
           <ul className="divide-y divide-line/60">
+            {organizerGuest && <GuestRow g={organizerGuest} />}
             {direct.map((g) => (
               <GuestRow key={g.discordId} g={g} />
             ))}

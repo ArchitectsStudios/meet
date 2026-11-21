@@ -51,7 +51,7 @@ export function MeetingForm({ timezone, meId, guild, initial }: Props) {
   const [agendaTab, setAgendaTab] = useState<"write" | "preview">("write");
   const [users, setUsers] = useState<PickedUser[]>(
     initial?.guests
-      .filter((g) => g.direct)
+      .filter((g) => g.direct && !g.organizer)
       .map((g) => ({ discordId: g.discordId, displayName: g.displayName, required: g.direct!.required })) ?? [],
   );
   const [roles, setRoles] = useState<PickedRole[]>(

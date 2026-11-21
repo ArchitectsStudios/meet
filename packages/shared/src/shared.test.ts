@@ -117,7 +117,7 @@ describe("suggestTimes", () => {
 describe("mergeGuests", () => {
   it("merges direct and role invites into one guest and keeps RSVPs", () => {
     const res = mergeGuests(
-      "org",
+      { discordId: "org", displayName: "Organizer" },
       [{ discordId: "a", displayName: "A", required: false }],
       [
         {
@@ -141,8 +141,10 @@ describe("mergeGuests", () => {
     expect(a.direct).toEqual({ required: false });
     expect(a.roleIds).toEqual(["r1"]);
     expect(a.rsvp).toBe("accepted");
-    expect(res.guests.map((g) => g.discordId).sort()).toEqual(["a", "b"]);
-    expect(res.addedIds).toEqual(["b"]);
+    expect(res.guests.map((g) => g.discordId)).toEqual(["org", "a", "b"]);
+    const org = res.guests[0]!;
+    expect(org).toMatchObject({ organizer: true, required: true, rsvp: "accepted", roleIds: [], direct: null });
+    expect(res.addedIds).toEqual(["org", "b"]);
     expect(res.removedIds).toEqual(["z"]);
     expect(res.roleInvites[0]!.memberIds).toEqual(["a", "b", "org"]);
   });
