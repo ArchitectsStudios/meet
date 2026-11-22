@@ -111,7 +111,7 @@ export function TeamAvailability({ members, timezone, meId }: { members: TeamMem
       .toFormat("cccc HH:mm") + `–${weekStart.plus({ days: hover.day, minutes: (hover.slot + 1) * SLOT_MIN }).toFormat("HH:mm")}`;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
+    <div className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
       <aside className="card h-fit space-y-3 p-4 lg:sticky lg:top-20">
         <div className="flex items-center justify-between gap-2">
           <button
