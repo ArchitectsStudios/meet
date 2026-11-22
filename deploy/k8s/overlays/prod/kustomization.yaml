@@ -4,9 +4,9 @@ resources:
   - ../../base
 # CI sets these to the commit SHA with `kubectl set image`. `latest` is the fallback for a first apply.
 images:
-  - name: ghcr.io/craftycodie/meet-web
+  - name: ghcr.io/architectsstudios/meet-web
     newTag: latest
-  - name: ghcr.io/craftycodie/meet-bot
+  - name: ghcr.io/architectsstudios/meet-bot
     newTag: latest
 # The VPS has 3.7 GB RAM shared with blam.network, so run one web pod.
 replicas:

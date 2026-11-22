@@ -20,7 +20,7 @@ function Footer() {
         <>
           {" · "}
           <a
-            href={`https://github.com/craftycodie/meet/commit/${b.commit}`}
+            href={`https://github.com/ArchitectsStudios/meet/commit/${b.commit}`}
             target="_blank"
             rel="noreferrer"
             className="font-mono hover:text-text"

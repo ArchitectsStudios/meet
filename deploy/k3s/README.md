@@ -85,7 +85,7 @@ kubectl apply -f deploy/k3s/cluster-issuer.yaml
 
 ## 5. Image pull access
 
-GitHub Actions pushes images to `ghcr.io/craftycodie/meet-web` and `meet-bot`. Use one of these options:
+GitHub Actions pushes images to `ghcr.io/architectsstudios/meet-web` and `meet-bot`. Use one of these options:
 
 - **Public images.** In GitHub, open each package, go to *Package settings* and set it to *Public*. No secret is needed.
 - **Private images.** Create a GitHub personal access token with the `read:packages` scope. Then run:

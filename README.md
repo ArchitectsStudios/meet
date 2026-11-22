@@ -69,4 +69,4 @@ pnpm build
 
 ## Deployment
 
-See [deploy/k3s/README.md](deploy/k3s/README.md). In short: install k3s and cert-manager, create the `meet-secrets` Secret, then run `kubectl apply -k deploy/k8s/overlays/prod`. GitHub Actions builds and pushes `ghcr.io/craftycodie/meet-web` and `meet-bot` on every push to `main`.
+See [deploy/k3s/README.md](deploy/k3s/README.md). In short: install k3s and cert-manager, create the `meet-secrets` Secret, then run `kubectl apply -k deploy/k8s/overlays/prod`. GitHub Actions builds and pushes `ghcr.io/architectsstudios/meet-web` and `meet-bot` on every push to `main`.

@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       build_string: ${{ steps.compute.outputs.build_string }}
+      image_owner: ${{ steps.compute.outputs.image_owner }}
       branch: ${{ steps.compute.outputs.branch }}
       commit: ${{ steps.compute.outputs.commit }}
       built_at: ${{ steps.compute.outputs.built_at }}
@@ -31,6 +32,8 @@ jobs:
           INFO=$(node scripts/compute-build-string.mjs)
           field() { node -e "process.stdout.write(String(JSON.parse(process.argv[1])[process.argv[2]]))" "$INFO" "$1"; }
           echo "build_string=$(field buildString)" >> "$GITHUB_OUTPUT"
+          # GHCR image names must be lowercase; the owner is "ArchitectsStudios".
+          echo "image_owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
           echo "branch=$(field branch)" >> "$GITHUB_OUTPUT"
           echo "commit=$(field commit)" >> "$GITHUB_OUTPUT"
           echo "built_at=$(field builtAt)" >> "$GITHUB_OUTPUT"
@@ -70,8 +73,8 @@ jobs:
           file: apps/${{ matrix.app }}/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/meet-${{ matrix.app }}:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/meet-${{ matrix.app }}:latest
+            ghcr.io/${{ needs.prepare.outputs.image_owner }}/meet-${{ matrix.app }}:${{ github.sha }}
+            ghcr.io/${{ needs.prepare.outputs.image_owner }}/meet-${{ matrix.app }}:latest
           build-args: |
             MEET_BUILD_STRING=${{ needs.prepare.outputs.build_string }}
             MEET_BUILD_BRANCH=${{ needs.prepare.outputs.branch }}
@@ -111,7 +114,7 @@ jobs:
   # Turn on by setting the repository variable DEPLOY_ENABLED=true and the secrets
   # VPS_HOST, VPS_USER and VPS_SSH_KEY. The VPS user needs kubectl access to the cluster.
   deploy:
-    needs: images
+    needs: [prepare, images]
     if: github.event_name == 'push' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -122,7 +125,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
-            kubectl -n meet set image deploy/web web=ghcr.io/${{ github.repository_owner }}/meet-web:${{ github.sha }}
-            kubectl -n meet set image deploy/bot bot=ghcr.io/${{ github.repository_owner }}/meet-bot:${{ github.sha }}
+            kubectl -n meet set image deploy/web web=ghcr.io/${{ needs.prepare.outputs.image_owner }}/meet-web:${{ github.sha }}
+            kubectl -n meet set image deploy/bot bot=ghcr.io/${{ needs.prepare.outputs.image_owner }}/meet-bot:${{ github.sha }}
             kubectl -n meet rollout status deploy/web --timeout=180s
             kubectl -n meet rollout status deploy/bot --timeout=180s

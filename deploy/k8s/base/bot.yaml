@@ -31,7 +31,7 @@ spec:
         - name: ghcr-pull # only needed while the GHCR package is private
       containers:
         - name: bot
-          image: ghcr.io/craftycodie/meet-bot:latest
+          image: ghcr.io/architectsstudios/meet-bot:latest
           ports:
             - containerPort: 3001
           envFrom:
