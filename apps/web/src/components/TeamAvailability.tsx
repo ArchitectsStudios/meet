@@ -170,6 +170,9 @@ export function TeamAvailability({ members, timezone, meId }: { members: TeamMem
 
       <div className="min-w-0 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className="btn-ghost" onClick={() => setWeekStart(weekStartOf(DateTime.now().setZone(timezone)))}>
+            Today
+          </button>
           <button type="button" className="btn-ghost" onClick={() => setWeekStart(weekStart.minus({ weeks: 1 }))} aria-label="Previous week">
             ‹
           </button>
