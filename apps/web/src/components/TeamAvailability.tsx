@@ -145,9 +145,16 @@ export function TeamAvailability({ members, timezone, meId }: { members: TeamMem
                   <input type="checkbox" className="h-4 w-4 accent-[var(--color-accent)]" checked={checked} onChange={() => toggle(m.discordId)} />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={m.avatarUrl} alt="" className="h-6 w-6 rounded-full" />
-                  <span className={`truncate ${checked ? "" : "text-muted"}`}>
-                    {m.displayName}
-                    {m.discordId === meId && <span className="text-muted"> (you)</span>}
+                  <span className="flex min-w-0 flex-col leading-tight">
+                    <span className={`truncate ${checked ? "" : "text-muted"}`}>
+                      {m.displayName}
+                      {m.discordId === meId && <span className="text-muted"> (you)</span>}
+                    </span>
+                    {m.timezone && (
+                      <span className="truncate text-[11px] text-muted" title={m.timezone} suppressHydrationWarning>
+                        {m.timezone.replace(/_/g, " ")} · {DateTime.now().setZone(m.timezone).toFormat("HH:mm")}
+                      </span>
+                    )}
                   </span>
                   {unknown && (
                     <span className="ml-auto shrink-0 text-[10px] text-muted" title="Has not set availability for this server">
