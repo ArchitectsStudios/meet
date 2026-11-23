@@ -16,7 +16,7 @@ Add these records at your DNS provider:
 | `meet`           | A    | VPS IPv4    |
 | `*` (optional)   | A    | VPS IPv4    |
 
-The wildcard record lets any future `<name>.architectsstudio.dev` service work with only a new Ingress. You do not need to change DNS again.
+The wildcard record lets any future `<name>.architectsstudios.dev` service work with only a new Ingress. You do not need to change DNS again.
 
 ## 2. Firewall
 
@@ -113,7 +113,7 @@ kubectl apply -k deploy/k8s/overlays/prod
 kubectl -n meet get pods,ingress,certificate
 ```
 
-The certificate shows `READY=True` after about a minute. Then <https://meet.architectsstudio.dev> is live.
+The certificate shows `READY=True` after about a minute. Then <https://meet.architectsstudios.dev> is live.
 
 After that, each push to `main` builds new images. When you turn on the `deploy` job in `.github/workflows/build.yml`, it also rolls them out.
 
@@ -123,7 +123,7 @@ Give the service its own Ingress with its own `host` and TLS secret, and add the
 
 ```sh
 kubectl apply -f deploy/k3s/whoami-example.yaml
-curl https://whoami.architectsstudio.dev
+curl https://whoami.architectsstudios.dev
 ```
 
 ## Operations

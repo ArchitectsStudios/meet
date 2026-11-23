@@ -7,7 +7,7 @@ This VPS runs two kinds of workload:
 
 ```
 internet :443 ──► Traefik (hostPort) ──┬─ SNI *.blam.network ──► TLS passthrough ──► host :8443 (blam-network.service)
-                                       └─ meet.architectsstudio.dev ──► TLS (cert-manager) ──► web pod
+                                       └─ meet.architectsstudios.dev ──► TLS (cert-manager) ──► web pod
 internet :80  ──► Traefik ──┬─ *.blam.network /.well-known/acme-challenge/ ──► host :8888 (certbot standalone)
                             ├─ *.blam.network ──► redirect to https
                             └─ other hosts ──► cert-manager HTTP-01 solver / redirect to https

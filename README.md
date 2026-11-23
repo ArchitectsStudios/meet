@@ -26,7 +26,7 @@ The web app never talks to Discord's bot API directly. It calls the bot's intern
 
 1. Create an application at <https://discord.com/developers/applications>.
 2. **OAuth2**: add these redirect URLs:
-   - `https://meet.architectsstudio.dev/api/auth/callback/discord`
+   - `https://meet.architectsstudios.dev/api/auth/callback/discord`
    - `http://localhost:3000/api/auth/callback/discord` (for development)
 3. Copy the client ID and the client secret.
 4. **Bot**: reset and copy the token. Turn on **Server Members Intent**.
